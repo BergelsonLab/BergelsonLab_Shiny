@@ -5,10 +5,10 @@ library(dplyr)
 
 ###################################### load data #############################################
 # Read in cdi datafile to work with as df_cdi
-df_cdi <- read.csv("final_cdi_merged_cleaned.csv")
+df_cdi <- read.csv("C:/Users/Liwen/Downloads/final_cdi_merged_cleaned.csv")
 
 # Read in motor datafile to work with as df_motor
-df_motor <- read.csv("final_motor_merged_cleaned.csv")
+df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv")
 
 ###################################### clean data ############################################
 
@@ -37,6 +37,8 @@ col_first_gest = col_gestures[1:12]                               # A. First Com
 col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
 
 cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
+cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
+             "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
 
 
 ### clean df_motor
@@ -51,6 +53,11 @@ df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
 
 
 ######################################### Shiny UI ###############################################
+radio_cdi <- list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
+     "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)
+
+
+
 shinyUI(fluidPage(
   
   # Application title
@@ -77,23 +84,23 @@ shinyUI(fluidPage(
         helpText("Select word/phrase options to analyze from CDI dataset:"),
         # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
         radioButtons("radioButton", label = "Select set of words/phrases: ",
-                     choices = list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
-                                    "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)),
+                     choices = radio_cdi),
         hr(),
         helpText("Select the columns that you wish to view in the data table"),
         selectInput("cdi_colChoices", label = "Select Columns for Data Table: ",
                     choices = cdi_choice[[1]],
-                    multiple = TRUE)
+                    multiple = TRUE),
         
+        hr(),
+        helpText("Download the filtered data from datatable to csv file."),
+        downloadButton("download_filter_cdi", "Download Full Data")
         
         
  
       ) # end of conditionalPanel (dataset1) 
     
       
-      
-      
-      
+
       
       ), # end of sidebarPanel
     

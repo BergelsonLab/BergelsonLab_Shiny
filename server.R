@@ -18,31 +18,32 @@ shinyServer(function(input, output, session) {
       output$downloadData <- downloadHandler(
         filename = "Seedling_Survey_All_CDI_Data.csv",
         content = function(file_out){
-          write.csv(df_cdi,file_out)
+          write.csv(df_cdi,file_out, row.names=FALSE)
         }
       )
       
       # which radioButton is chosen
       x <- reactive({as.numeric(input$radioButton)})
+      
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
-      
-      # #download filtered data
-      
-      # col_select <- reactive({
-      #   cdi_choice[[x()]][input$cdi_colChoices] %>% as.character()
-      # })
-      # if(length(col_select) == 0){
-        filter_cdi <- df_cdi[c(cdi_basic,names(cdi_choice[[x()]]))]
-      # }else{
-      #   filter_cdi <- df_cdi[,1]
-      # }
 
+      # #download filtered data
+      filter_cdi <- reactive({
+        df <- df_cdi[input$cdi_colChoices]
+        
+        if(dim(df)[2]==0){
+          df_cdi[c(cdi_basic,cdi_choice[[x()]])]
+        }else{
+          cbind(df_cdi[cdi_basic],df)
+        }
+      })
 
       output$download_filter_cdi <- downloadHandler(
         filename = paste("Seedling Filtered",names(radio_cdi)[x()],"Data.csv"),
         content = function(file_out){
-          write.csv(filter_cdi,file_out)
+
+          write.csv(filter_cdi(),file_out,row.names=FALSE)
         })
 
       
