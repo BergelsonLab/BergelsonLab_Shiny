@@ -7,11 +7,7 @@ shinyServer(function(input, output, session) {
   
   # which set of data is being analyzed
   d <- reactive({input$dataset})
-  # which radioButton is chosen
-  x <- reactive({input$radioButton})
-  
-  
-  
+
   
   output$plot<-renderPlot({
   
@@ -26,11 +22,29 @@ shinyServer(function(input, output, session) {
         }
       )
       
-
+      # which radioButton is chosen
+      x <- reactive({as.numeric(input$radioButton)})
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
       
+      # #download filtered data
       
+      # col_select <- reactive({
+      #   cdi_choice[[x()]][input$cdi_colChoices] %>% as.character()
+      # })
+      # if(length(col_select) == 0){
+        filter_cdi <- df_cdi[c(cdi_basic,names(cdi_choice[[x()]]))]
+      # }else{
+      #   filter_cdi <- df_cdi[,1]
+      # }
+
+
+      output$download_filter_cdi <- downloadHandler(
+        filename = paste("Seedling Filtered",names(radio_cdi)[x()],"Data.csv"),
+        content = function(file_out){
+          write.csv(filter_cdi,file_out)
+        })
+
       
     } # end of d()==1
     
