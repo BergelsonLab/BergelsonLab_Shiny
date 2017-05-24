@@ -1,0 +1,113 @@
+
+###################################### library package #######################################
+library(shiny)
+library(dplyr)
+
+###################################### load data #############################################
+# Read in cdi datafile to work with as df_cdi
+df_cdi <- read.csv("final_cdi_merged_cleaned.csv")
+
+# Read in motor datafile to work with as df_motor
+df_motor <- read.csv("final_motor_merged_cleaned.csv")
+
+###################################### clean data ############################################
+
+### clean df_cdi
+###### drop rows with missing value, and convert all factor type into character type
+df_cdi = df_cdi %>%na.omit() %>%  mutate_if(is.factor,as.character)
+###### convert txt level to number
+df_cdi[df_cdi=='Yes'] <- 1                       # Convert 'Yes' values to = 1
+df_cdi[df_cdi=='No'] <- 0                        # Convert 'No' values to = 0
+df_cdi[df_cdi=='Often'] <- 2                     # Convert 'Often' to = 2
+df_cdi[df_cdi=='Sometimes'] <- 1                 # Convert 'Sometimes' to = 1
+df_cdi[df_cdi=='Never'] <- 0                     # Convert 'Never' to = 0
+df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
+###### convert all character type into factor
+df_cdi = df_cdi %>%  mutate_if(is.character,as.factor)
+###### set ResponseID as character
+df_cdi$ResponseID <- as.character(df_cdi$ResponseID)
+###### CDI survey sections
+col_unerstand = grep("^Understand_.*",names(df_cdi),value = TRUE) # column names starting with "Understand_"
+col_first_sign = col_unerstand[1:3]                               # A. First Signs of Understanding
+col_phrases = col_unerstand[4:(length(col_unerstand)-2)]          # B. Phrases
+col_start_talk = col_unerstand[(length(col_unerstand)-1):length(col_unerstand)] # C. Starting to Talk
+col_talk = grep("^Talk_.*",names(df_cdi),value = TRUE)            # D.Vocabulary Checklist
+col_gestures = grep("^Gestures_.*",names(df_cdi),value = TRUE)    # column names starting with "Gestures_"
+col_first_gest = col_gestures[1:12]                               # A. First Communicative Gestures
+col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
+
+cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
+
+
+### clean df_motor
+###### drop rows with missing value
+df_motor <- df_motor %>% na.omit()
+###### set ResponseID as character
+df_motor$ResponseID <- as.character(df_motor$ResponseID)
+
+
+### merge cdi dataset and motor dateset
+df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
+
+
+######################################### Shiny UI ###############################################
+shinyUI(fluidPage(
+  
+  # Application title
+  titlePanel(h1("Seedling Survey Results")),
+  
+  # Sidebar with widgets for user manipulation of data and display in main panel
+  # 1st Download Button and Radio Button remain present regardless of user input
+  sidebarLayout(
+    sidebarPanel(
+      # Drop down menu to allow users to select either CDI survey or Motor survey to analyze
+      selectInput("dataset", "Choose Dataset", choices = list("final_cdi_merged_cleaned.csv" = 1, 
+                                                              "final_motor_merged_cleaned.csv" = 2),
+                  selected = 1),
+      # Help text describes what the following widget does and what the user should do
+      helpText("Download data to a csv file containing all rows and columns from the selected .csv file above (not filtered)"),
+      # Create button to download csv file from the app to user's local machine.
+      downloadButton("downloadData", "Download Full Data"),
+      
+          
+      # Only display these widgets if user selected CDI dataset becasue these only apply to CDI survey
+      conditionalPanel(
+        hr(),
+        condition = "input.dataset == 1",
+        helpText("Select word/phrase options to analyze from CDI dataset:"),
+        # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
+        radioButtons("radioButton", label = "Select set of words/phrases: ",
+                     choices = list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
+                                    "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)),
+        hr(),
+        helpText("Select the columns that you wish to view in the data table"),
+        selectInput("cdi_colChoices", label = "Select Columns for Data Table: ",
+                    choices = cdi_choice[[1]],
+                    multiple = TRUE)
+        
+        
+        
+ 
+      ) # end of conditionalPanel (dataset1) 
+    
+      
+      
+      
+      
+      
+      ), # end of sidebarPanel
+    
+    
+    
+    
+    
+    # Show a the table and plot from user input in sidebar panel widgets
+    mainPanel(
+      h2("Survey Results", align = "center"),
+      #Data Table output initialized
+      DT::dataTableOutput("table"),
+      #Plot output initialized
+      plotOutput("plot", height = 500)
+      )
+)
+))
