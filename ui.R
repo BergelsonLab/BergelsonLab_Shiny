@@ -53,10 +53,15 @@ df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
 
 
 ######################################### Shiny UI ###############################################
+
+######################## options
 radio_cdi <- list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
      "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)
 
+cdi_color_choices <- c(1:ncol(df_cdi))
+names(cdi_color_choices) <- names(df_cdi)
 
+######################### UI
 
 shinyUI(fluidPage(
   
@@ -93,7 +98,19 @@ shinyUI(fluidPage(
         
         hr(),
         helpText("Download the filtered data from datatable to csv file."),
-        downloadButton("download_filter_cdi", "Download Full Data")
+        downloadButton("download_filter_cdi", "Download Full Data"),
+        hr(),
+        helpText("Select the two variables you wish to view in the plot. First choice = X-axis; Second choice = Y-axis."),
+        selectizeInput("cdi_plot", label = "variables to plot",
+                       choices = cdi_choice[[1]],
+                       options = list(maxItems = 2)),
+        helpText("Select the variable with respect to which the plot colors
+               will be filtered."),
+        selectInput("cdi_color", label = "Color:",
+                    choices = cdi_color_choices, selected = 4,
+                    multiple = FALSE)
+        
+
         
         
  

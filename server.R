@@ -27,6 +27,8 @@ shinyServer(function(input, output, session) {
       
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
+      # updateSelectizeInput(session,"cdi_plot",label = "variables to plot",
+      #                   choices = cdi_choice[[x()]], server = TRUE)
 
       # #download filtered data
       filter_cdi <- reactive({
@@ -45,6 +47,9 @@ shinyServer(function(input, output, session) {
 
           write.csv(filter_cdi(),file_out,row.names=FALSE)
         })
+      
+      print(input$cdi_plot)
+      print(typeof(input$cdi_plot))
 
       
     } # end of d()==1
