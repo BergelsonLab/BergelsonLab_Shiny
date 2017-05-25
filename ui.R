@@ -36,11 +36,6 @@ col_gestures = grep("^Gestures_.*",names(df_cdi),value = TRUE)    # column names
 col_first_gest = col_gestures[1:12]                               # A. First Communicative Gestures
 col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
 
-cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
-cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
-             "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
-
-
 ### clean df_motor
 ###### drop rows with missing value
 df_motor <- df_motor %>% na.omit()
@@ -61,6 +56,10 @@ radio_cdi <- list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
 cdi_color_choices <- c(1:ncol(df_cdi))
 names(cdi_color_choices) <- names(df_cdi)
 
+cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
+cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
+             "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
+cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
 ######################### UI
 
 shinyUI(fluidPage(
@@ -102,16 +101,12 @@ shinyUI(fluidPage(
         hr(),
         
         # plot
-        helpText("Select the two variables you wish to view in the plot. First choice = X-axis; Second choice = Y-axis."),
-        selectInput("cdi_plot_x", label = "X-axis",
+        helpText("Select the two variables you wish to view in the plot."),
+        selectInput("cdi_plot_y", label = "Variable you want to view",
                        choices = c("",cdi_choice[[1]]), selected = ""),
-        selectInput("cdi_plot_y", label = "Y-axis",
-                       choices = c("",cdi_choice[[1]]), selected = ""),
-        helpText("Select the variable with respect to which the plot colors
-               will be filtered."),
-        selectInput("cdi_color", label = "Color:",
-                    choices = cdi_color_choices, selected = 4,
-                    multiple = FALSE)
+        selectInput("cdi_plot_x", label = "Color/Category",
+                    choices = c("",cdi_choice_x), selected = ""),
+        radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2))
         
 
         

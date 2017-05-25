@@ -27,9 +27,7 @@ shinyServer(function(input, output, session) {
       
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
-      updateSelectInput(session,"cdi_plot_x",label = "X-axis",
-                        choices = c("",cdi_choice[[x()]]), selected = "")
-      updateSelectInput(session,"cdi_plot_y",label = "Y-axis",
+      updateSelectInput(session,"cdi_plot_y",label = "Variable you want to view",
                         choices = c("",cdi_choice[[x()]]), selected = "")
 
       # #download filtered data
@@ -51,16 +49,26 @@ shinyServer(function(input, output, session) {
         })
       
       ## plot
-      # print(input$cdi_plot_x)
-      # print(typeof(input$cdi_plot_x))
-      # print(input$cdi_plot_y)
-      # print(typeof(input$cdi_plot_y))
-      
+      y <- reactive({as.numeric(input$per_plot)})
+
       output$plot <- renderPlot(
         if(input$cdi_plot_x != "" & input$cdi_plot_y !=""){
           df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
-          ggplot(df1)+
-            geom_point(aes(x = df1[,1],y = df1[,2]))
+          plot1 <- ggplot(df1)+
+            ggtitle(paste("The Distribution of",input$cdi_plot_y))+
+            xlab(input$cdi_plot_x)+
+            labs(fill=input$cdi_plot_y) +
+            theme(plot.title = element_text(hjust = 0.5),
+                  panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), axis.line = element_line(colour = "black"))
+          
+          if (y()==1){
+            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])))
+          }else{
+            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),position = "fill")+ ylab("percentage")
+          }
+          
+           
         }
       )
 
