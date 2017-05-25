@@ -100,10 +100,13 @@ shinyUI(fluidPage(
         helpText("Download the filtered data from datatable to csv file."),
         downloadButton("download_filter_cdi", "Download Full Data"),
         hr(),
+        
+        # plot
         helpText("Select the two variables you wish to view in the plot. First choice = X-axis; Second choice = Y-axis."),
-        selectizeInput("cdi_plot", label = "variables to plot",
-                       choices = cdi_choice[[1]],
-                       options = list(maxItems = 2)),
+        selectInput("cdi_plot_x", label = "X-axis",
+                       choices = c("",cdi_choice[[1]]), selected = ""),
+        selectInput("cdi_plot_y", label = "Y-axis",
+                       choices = c("",cdi_choice[[1]]), selected = ""),
         helpText("Select the variable with respect to which the plot colors
                will be filtered."),
         selectInput("cdi_color", label = "Color:",
@@ -131,6 +134,8 @@ shinyUI(fluidPage(
       #Data Table output initialized
       DT::dataTableOutput("table"),
       #Plot output initialized
+      plotOutput("plot_env", height = 10), # interactive environment
+      # test
       plotOutput("plot", height = 500)
       )
 )

@@ -9,7 +9,7 @@ shinyServer(function(input, output, session) {
   d <- reactive({input$dataset})
 
   
-  output$plot<-renderPlot({
+  output$plot_env<-renderPlot({
   
     # select cdi data set
     if(d()==1){
@@ -27,8 +27,10 @@ shinyServer(function(input, output, session) {
       
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
-      # updateSelectizeInput(session,"cdi_plot",label = "variables to plot",
-      #                   choices = cdi_choice[[x()]], server = TRUE)
+      updateSelectInput(session,"cdi_plot_x",label = "X-axis",
+                        choices = c("",cdi_choice[[x()]]), selected = "")
+      updateSelectInput(session,"cdi_plot_y",label = "Y-axis",
+                        choices = c("",cdi_choice[[x()]]), selected = "")
 
       # #download filtered data
       filter_cdi <- reactive({
@@ -48,10 +50,21 @@ shinyServer(function(input, output, session) {
           write.csv(filter_cdi(),file_out,row.names=FALSE)
         })
       
-      print(input$cdi_plot)
-      print(typeof(input$cdi_plot))
-
+      ## plot
+      # print(input$cdi_plot_x)
+      # print(typeof(input$cdi_plot_x))
+      # print(input$cdi_plot_y)
+      # print(typeof(input$cdi_plot_y))
       
+      output$plot <- renderPlot(
+        if(input$cdi_plot_x != "" & input$cdi_plot_y !=""){
+          df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
+          ggplot(df1)+
+            geom_point(aes(x = df1[,1],y = df1[,2]))
+        }
+      )
+
+
     } # end of d()==1
     
     
