@@ -80,58 +80,59 @@ shinyUI(fluidPage(
       # Create button to download csv file from the app to user's local machine.
       downloadButton("downloadData", "Download Full Data"),
       
-          
+      hr(),
+      strong("Filter Data"),
+      
       # Only display these widgets if user selected CDI dataset becasue these only apply to CDI survey
       conditionalPanel(
-        hr(),
+        
         condition = "input.dataset == 1",
-        helpText("Select word/phrase options to analyze from CDI dataset:"),
+        helpText("Select word/phrase options to analyze from CDI dataset"),
         # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
         radioButtons("radioButton", label = "Select set of words/phrases: ",
                      choices = radio_cdi),
         hr(),
         helpText("Select the columns that you wish to view in the data table"),
-        selectInput("cdi_colChoices", label = "Select Columns for Data Table: ",
+        selectInput("cdi_colChoices", label = "Select Columns for Data Table",
                     choices = cdi_choice[[1]],
                     multiple = TRUE),
-        
-        hr(),
         helpText("Download the filtered data from datatable to csv file."),
-        downloadButton("download_filter_cdi", "Download Full Data"),
+        downloadButton("download_filter_cdi", "Download Filtered Data"),
         hr(),
         
+        
+        ###################### test
         # plot
+        strong("Plot"),
         helpText("Select the two variables you wish to view in the plot."),
         selectInput("cdi_plot_y", label = "Variable you want to view",
                        choices = c("",cdi_choice[[1]]), selected = ""),
         selectInput("cdi_plot_x", label = "Color/Category",
                     choices = c("",cdi_choice_x), selected = ""),
-        radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2))
-        
-
-        
-        
+        radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
  
-      ) # end of conditionalPanel (dataset1) 
-    
+      ), # end of conditionalPanel (dataset1) 
       
-
-      
+      conditionalPanel(
+        condition = "input.dataset == 2",
+        helpText("Select columns that you wish to view in the table"),
+        selectInput("colChoices_motor", label = "Select Columns for Data Table",
+                    choices = names(df_motor)[-c(1,2)],
+                    multiple = TRUE),
+        downloadButton("download_filter_motor", "Download Filtered Data")
+        
+      ) # end of conditionalPanel (dataset2)
       ), # end of sidebarPanel
-    
-    
-    
-    
-    
+
     # Show a the table and plot from user input in sidebar panel widgets
     mainPanel(
       h2("Survey Results", align = "center"),
-      #Data Table output initialized
-      DT::dataTableOutput("table"),
-      #Plot output initialized
-      plotOutput("plot_env", height = 10), # interactive environment
-      # test
-      plotOutput("plot", height = 500)
+      plotOutput("plot_env", height = 10), # interactive environment,
+      tabsetPanel(
+        id = 'tab',
+        tabPanel('table',DT::dataTableOutput("table")),
+        tabPanel('Plot',plotOutput("plot", height = 500))
+      )
       )
 )
 ))

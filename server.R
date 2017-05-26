@@ -7,6 +7,7 @@ shinyServer(function(input, output, session) {
   
   # which set of data is being analyzed
   d <- reactive({input$dataset})
+  y <- reactive({as.numeric(input$per_plot)})
 
   
   output$plot_env<-renderPlot({
@@ -30,7 +31,7 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session,"cdi_plot_y",label = "Variable you want to view",
                         choices = c("",cdi_choice[[x()]]), selected = "")
 
-      # #download filtered data
+      # display filtered data
       filter_cdi <- reactive({
         df <- df_cdi[input$cdi_colChoices]
         
@@ -40,7 +41,11 @@ shinyServer(function(input, output, session) {
           cbind(df_cdi[cdi_basic],df)
         }
       })
-
+      output$table <- DT::renderDataTable({
+        DT::datatable(filter_cdi())
+      })
+      
+      # download filtered data
       output$download_filter_cdi <- downloadHandler(
         filename = paste("Seedling Filtered",names(radio_cdi)[x()],"Data.csv"),
         content = function(file_out){
@@ -49,12 +54,11 @@ shinyServer(function(input, output, session) {
         })
       
       ## plot
-      y <- reactive({as.numeric(input$per_plot)})
 
       output$plot <- renderPlot(
         if(input$cdi_plot_x != "" & input$cdi_plot_y !=""){
           df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
-          plot1 <- ggplot(df1)+
+          plot1 <- ggplot(df1,na.rm = TRUE)+
             ggtitle(paste("The Distribution of",input$cdi_plot_y))+
             xlab(input$cdi_plot_x)+
             labs(fill=input$cdi_plot_y) +
@@ -64,18 +68,12 @@ shinyServer(function(input, output, session) {
           
           if (y()==1){
             plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])))
-          }else{
+           }else{
             plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),position = "fill")+ ylab("percentage")
+           }
           }
-          
-           
-        }
-      )
-
-
+      ) # end of rederPlot
     } # end of d()==1
-    
-    
     
     
     # select motor data set
@@ -88,6 +86,8 @@ shinyServer(function(input, output, session) {
           write.csv(df_motor,file_out)
         }
       )
+      
+      
     }
   }) # end of renderPlot
     
