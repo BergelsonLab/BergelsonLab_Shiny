@@ -8,6 +8,7 @@ shinyServer(function(input, output, session) {
   # which set of data is being analyzed
   d <- reactive({input$dataset})
   y <- reactive({as.numeric(input$per_plot)})
+  y2 <- reactive({as.numeric(input$per_plot2)})
 
   
   output$plot_env<-renderPlot({
@@ -31,8 +32,8 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session,"cdi_plot_y",label = "Variable you want to view",
                         choices = c("",cdi_choice[[x()]]), selected = "")
 
-      # display filtered data
-      filter_cdi <- reactive({
+      # display selected data
+      select_cdi <- reactive({
         df <- df_cdi[input$cdi_colChoices]
         
         if(dim(df)[2]==0){
@@ -42,15 +43,15 @@ shinyServer(function(input, output, session) {
         }
       })
       output$table <- DT::renderDataTable({
-        DT::datatable(filter_cdi())
+        DT::datatable(select_cdi())
       })
       
-      # download filtered data
-      output$download_filter_cdi <- downloadHandler(
-        filename = paste("Seedling Filtered",names(radio_cdi)[x()],"Data.csv"),
+      # download selected data
+      output$download_selected_cdi <- downloadHandler(
+        filename = paste("Seedling Selected",names(radio_cdi)[x()],"Data.csv"),
         content = function(file_out){
 
-          write.csv(cbind(df_cdi[cdi_basic],filter_cdi()),file_out,row.names=FALSE)
+          write.csv(cbind(df_cdi[cdi_basic],select_cdi()),file_out,row.names=FALSE)
         })
       
       ## plot
@@ -87,8 +88,8 @@ shinyServer(function(input, output, session) {
         }
       )
       
-      # display filtered data
-      filter_motor <- reactive({
+      # display selected data
+      select_motor <- reactive({
         df <- df_motor[input$motor_colChoices]
         if(dim(df)[2]==0){
           df_motor[,-c(1,2)]
@@ -98,15 +99,35 @@ shinyServer(function(input, output, session) {
       })
       
       output$table <- DT::renderDataTable({
-        DT::datatable(filter_motor())
+        DT::datatable(select_motor())
       })
       
-      # download filtered data
-      output$download_filter_motor <- downloadHandler(
-        filename = "Seedling_Filtered_Motor_Data.csv",
+      # download selected data
+      output$download_selected_motor <- downloadHandler(
+        filename = "Seedling_Selected_Motor_Data.csv",
         content = function(file_out){
-          write.csv(filter_motor(),file_out,row.names=FALSE)
+          write.csv(cbind(df_motor[motor_basic],select_motor()),file_out,row.names=FALSE)
       })
+      
+      ## plot
+      output$plot <- renderPlot(
+        if(input$motor_plot_x != "" & input$motor_plot_y !=""){
+          df2 <- df_motor[c(input$motor_plot_x,input$motor_plot_y)]
+          plot2 <- ggplot(df2,na.rm = TRUE)+
+            ggtitle(paste("The Distribution of",input$motor_plot_y))+
+            xlab(input$motor_plot_x)+
+            labs(fill=input$motor_plot_y) +
+            theme(plot.title = element_text(hjust = 0.5),
+                  panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), axis.line = element_line(colour = "black"))
+          
+          if (y2()==1){
+            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])))
+          }else{
+            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),position = "fill")+ ylab("percentage")
+          }
+        }
+      ) # end of rederPlot
       
     }
   }) # end of renderPlot

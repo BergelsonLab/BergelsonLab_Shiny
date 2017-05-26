@@ -41,6 +41,15 @@ col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
 df_motor <- df_motor %>% na.omit()
 ###### set ResponseID as character
 df_motor$ResponseID <- as.character(df_motor$ResponseID)
+###### find factor variables
+num_ans <- sapply(df_motor,function(x) length(unique(x)))
+motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
+motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
+                 "Score.sum","Score.weightedAvg","Score.weightedStdDev",
+                 "weight","ageweight")
+
+
+
 
 
 ### merge cdi dataset and motor dateset
@@ -60,6 +69,8 @@ cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_g
 cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
              "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
 cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
+
+motor_choice_x <- c("Age_Corrected")
 ######################### UI
 
 shinyUI(fluidPage(
@@ -76,12 +87,12 @@ shinyUI(fluidPage(
                                                               "final_motor_merged_cleaned.csv" = 2),
                   selected = 1),
       # Help text describes what the following widget does and what the user should do
-      helpText("Download data to a csv file containing all rows and columns from the selected .csv file above (not filtered)"),
+      helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
       # Create button to download csv file from the app to user's local machine.
       downloadButton("downloadData", "Download Full Data"),
       
       hr(),
-      strong("Filter Data"),
+      strong("Select Columns"),
       
       # Only display these widgets if user selected CDI dataset becasue these only apply to CDI survey
       conditionalPanel(
@@ -96,12 +107,10 @@ shinyUI(fluidPage(
         selectInput("cdi_colChoices", label = "Select Columns for Data Table",
                     choices = cdi_choice[[1]],
                     multiple = TRUE),
-        helpText("Download the filtered data from datatable to csv file."),
-        downloadButton("download_filter_cdi", "Download Filtered Data"),
+        helpText("Download the selected data from datatable to csv file."),
+        downloadButton("download_selected_cdi", "Download Selected Data"),
         hr(),
         
-        
-        ###################### test
         # plot
         strong("Plot"),
         helpText("Select the two variables you wish to view in the plot."),
@@ -117,9 +126,18 @@ shinyUI(fluidPage(
         condition = "input.dataset == 2",
         helpText("Select columns that you wish to view in the table"),
         selectInput("motor_colChoices", label = "Select Columns for Data Table",
-                    choices = names(df_motor)[-c(1,2)],
+                    choices = motor_choice,
                     multiple = TRUE),
-        downloadButton("download_filter_motor", "Download Filtered Data")
+        downloadButton("download_selected_motor", "Download Selected Data"),
+        hr(),
+        #plot
+        strong("Plot"),
+        helpText("Select the two variables you wish to view in the plot."),
+        selectInput("motor_plot_y", label = "Variable you want to view",
+                    choices = c("",motor_choice), selected = ""),
+        selectInput("motor_plot_x", label = "Color/Category",
+                    choices = c("",motor_choice_x), selected = ""),
+        radioButtons('per_plot2', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
         
       ) # end of conditionalPanel (dataset2)
       ), # end of sidebarPanel
