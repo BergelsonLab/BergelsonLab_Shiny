@@ -36,9 +36,9 @@ shinyServer(function(input, output, session) {
         df <- df_cdi[input$cdi_colChoices]
         
         if(dim(df)[2]==0){
-          df_cdi[c(cdi_basic,cdi_choice[[x()]])]
+          df_cdi[cdi_choice[[x()]]]
         }else{
-          cbind(df_cdi[cdi_basic],df)
+          df
         }
       })
       output$table <- DT::renderDataTable({
@@ -50,7 +50,7 @@ shinyServer(function(input, output, session) {
         filename = paste("Seedling Filtered",names(radio_cdi)[x()],"Data.csv"),
         content = function(file_out){
 
-          write.csv(filter_cdi(),file_out,row.names=FALSE)
+          write.csv(cbind(df_cdi[cdi_basic],filter_cdi()),file_out,row.names=FALSE)
         })
       
       ## plot
@@ -81,12 +81,32 @@ shinyServer(function(input, output, session) {
       
       # download data set
       output$downloadData <- downloadHandler(
-        filename = "SSeedling_Survey_All_MOTOR_Data.csv",
+        filename = "Seedling_Survey_All_MOTOR_Data.csv",
         content = function(file_out){
-          write.csv(df_motor,file_out)
+          write.csv(df_motor,file_out,row.names = FALSE)
         }
       )
       
+      # display filtered data
+      filter_motor <- reactive({
+        df <- df_motor[input$motor_colChoices]
+        if(dim(df)[2]==0){
+          df_motor[,-c(1,2)]
+        }else{
+          df
+        }
+      })
+      
+      output$table <- DT::renderDataTable({
+        DT::datatable(filter_motor())
+      })
+      
+      # download filtered data
+      output$download_filter_motor <- downloadHandler(
+        filename = "Seedling_Filtered_Motor_Data.csv",
+        content = function(file_out){
+          write.csv(filter_motor(),file_out,row.names=FALSE)
+      })
       
     }
   }) # end of renderPlot

@@ -116,7 +116,7 @@ shinyUI(fluidPage(
       conditionalPanel(
         condition = "input.dataset == 2",
         helpText("Select columns that you wish to view in the table"),
-        selectInput("colChoices_motor", label = "Select Columns for Data Table",
+        selectInput("motor_colChoices", label = "Select Columns for Data Table",
                     choices = names(df_motor)[-c(1,2)],
                     multiple = TRUE),
         downloadButton("download_filter_motor", "Download Filtered Data")
