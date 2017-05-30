@@ -12,7 +12,7 @@ df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv")
 
 ###################################### clean data ############################################
 
-### clean df_cdi
+###################################### clean df_cdi
 ###### drop rows with missing value, and convert all factor type into character type
 df_cdi = df_cdi %>%na.omit() %>%  mutate_if(is.factor,as.character)
 ###### convert txt level to number
@@ -26,6 +26,27 @@ df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
 df_cdi = df_cdi %>%  mutate_if(is.character,as.factor)
 ###### set ResponseID as character
 df_cdi$ResponseID <- as.character(df_cdi$ResponseID)
+
+####################################### clean df_motor
+###### drop rows with missing value
+df_motor <- df_motor %>% na.omit()
+###### set ResponseID as character
+df_motor$ResponseID <- as.character(df_motor$ResponseID)
+
+
+################################ merge cdi dataset and motor dateset
+
+###### duplicated columns
+col_dup <- setdiff(names(df_cdi)[names(df_cdi) %in% names(df_motor)],c("Subject_Number_","Subject_Month_"))
+colnames(df_cdi)[which(names(df_cdi) %in% col_dup)] <- paste0(col_dup,"_cdi")
+colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_motor")
+
+df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
+
+######################################### Shiny UI ###############################################
+
+######################## options
+
 ###### CDI survey sections
 col_unerstand = grep("^Understand_.*",names(df_cdi),value = TRUE) # column names starting with "Understand_"
 col_first_sign = col_unerstand[1:3]                               # A. First Signs of Understanding
@@ -36,29 +57,6 @@ col_gestures = grep("^Gestures_.*",names(df_cdi),value = TRUE)    # column names
 col_first_gest = col_gestures[1:12]                               # A. First Communicative Gestures
 col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
 
-### clean df_motor
-###### drop rows with missing value
-df_motor <- df_motor %>% na.omit()
-###### set ResponseID as character
-df_motor$ResponseID <- as.character(df_motor$ResponseID)
-###### find factor variables
-num_ans <- sapply(df_motor,function(x) length(unique(x)))
-motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
-motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
-                 "Score.sum","Score.weightedAvg","Score.weightedStdDev",
-                 "weight","ageweight")
-
-
-
-
-
-### merge cdi dataset and motor dateset
-df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
-
-
-######################################### Shiny UI ###############################################
-
-######################## options
 radio_cdi <- list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
      "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)
 
@@ -70,7 +68,15 @@ cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonth
              "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
 cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
 
+###### Motor
+###### find factor variables
+num_ans <- sapply(df_motor,function(x) length(unique(x)))
+motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
+motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
+                 "weight","ageweight")
+
 motor_choice_x <- c("Age_Corrected")
+
 ######################### UI
 
 shinyUI(fluidPage(
@@ -84,7 +90,8 @@ shinyUI(fluidPage(
     sidebarPanel(
       # Drop down menu to allow users to select either CDI survey or Motor survey to analyze
       selectInput("dataset", "Choose Dataset", choices = list("final_cdi_merged_cleaned.csv" = 1, 
-                                                              "final_motor_merged_cleaned.csv" = 2),
+                                                              "final_motor_merged_cleaned.csv" = 2,
+                                                              "cdi_and_motor_merged.csv" = 3),
                   selected = 1),
       # Help text describes what the following widget does and what the user should do
       helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
@@ -139,13 +146,32 @@ shinyUI(fluidPage(
                     choices = c("",motor_choice_x), selected = ""),
         radioButtons('per_plot2', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
         
-      ) # end of conditionalPanel (dataset2)
+      ), # end of conditionalPanel (dataset2)
+      conditionalPanel(
+        condition = "input.dataset == 3",
+        helpText("Select word/phrase options to analyze from CDI dataset"),
+        radioButtons("radioButton_merge", label = "Select set of words/phrases from CDI dataset: ",
+                     choices = radio_cdi),
+        hr(),        
+        helpText("Select the columns that you wish to view in the data table (from both CDI and Motor datasets)"),
+        selectInput("merge_colChoices", label = "Select Columns for Data Table",
+                    choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[1]],motor_choice)))),
+                    multiple = TRUE),
+        # filter selected data
+        br(),
+        selectInput("merge_filter", "Variable to Filter", choices = c("")),
+        sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
+                                                                                                          
+        
+      ) # end of conditionalPanel (dataset merged)
+      
       ), # end of sidebarPanel
 
     # Show a the table and plot from user input in sidebar panel widgets
     mainPanel(
       h2("Survey Results", align = "center"),
-      plotOutput("plot_env", height = 10), # interactive environment,
+      plotOutput("plot_env", height = 5), # interactive environment,
+      plotOutput("plot_env2", height = 5), # interactive environment2,
       tabsetPanel(
         id = 'tab',
         tabPanel('table',DT::dataTableOutput("table")),

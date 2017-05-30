@@ -78,7 +78,7 @@ shinyServer(function(input, output, session) {
     
     
     # select motor data set
-    else{
+    else if(d()==2) {
       
       # download data set
       output$downloadData <- downloadHandler(
@@ -127,9 +127,79 @@ shinyServer(function(input, output, session) {
             plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),position = "fill")+ ylab("percentage")
           }
         }
-      ) # end of rederPlot
+      )     # end of rederPlot
+    }       # end of d()=2
+        
+    # merged data set
+    else{
+      # download data set
+      output$downloadData <- downloadHandler(
+        filename = "Seedling_Survey_All_MOTOR_Data.csv",
+        content = function(file_out){
+          write.csv(df_merge,file_out,row.names = FALSE)
+        })
       
-    }
-  }) # end of renderPlot
+      # which radioButton is chosen
+      x_merge <- reactive({as.numeric(input$radioButton_merge)})
+      updateSelectInput(session,"merge_colChoices", label = "Select Columns for Data Table",
+                  choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[x_merge()]],motor_choice)))))
+   
+      # display selected data
+      select_merge <- reactive({
+        df <- df_merge[input$merge_colChoices]
+        
+        if(dim(df)[2]==0){
+          df_merge[unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[x_merge()]],motor_choice))))]
+        }else{
+          df
+        }
+      })
+      
+      output$plot_env2<-renderPlot({
+        
+        updateSelectInput(session, "merge_filter", label = "Variable to Filter",
+                          choices = names(select_if(select_merge(),is.numeric)))
+  
+        f_range <- reactive({
+          if (input$merge_filter==""){
+            c(0,0)
+          }else{
+            f_value <- unlist(df_merge[input$merge_filter])
+            range(na.omit(as.numeric(as.character(f_value))))
+          }
+
+          })
+
+        
+        output$table <- DT::renderDataTable({
+          print(f_range())
+          #updateSliderInput("merge_range","Filter Selected Data",value=c(0,1),min=f_range()[1],max =10,step = 1)
+          
+          # display table
+          DT::datatable(select_merge())
+        })
+        
+        
+        
+      })
+      
+      # output$table <- DT::renderDataTable({
+      # 
+      #   # only numeric variables are allowed to filter
+      #   updateSelectInput(session, "merge_filter", label = "Variable to Filter",
+      #                     choices = names(select_if(select_merge(),is.numeric)))
+      #   #updateSliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
+      # 
+      #   # display table
+      #   DT::datatable(select_merge())
+      # })
+      # 
+
+
+      
+      
+      
+    }   # end of d()=3
+  })    # end of renderPlot
     
 })
