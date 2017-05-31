@@ -94,9 +94,9 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       # Drop down menu to allow users to select either CDI survey or Motor survey to analyze
-      selectInput("dataset", "Choose Dataset", choices = list("final_cdi_merged_cleaned.csv" = 1, 
-                                                              "final_motor_merged_cleaned.csv" = 2,
-                                                              "cdi_and_motor_merged.csv" = 3),
+      selectInput("dataset", "Choose Dataset", choices = list("CDI" = 1, 
+                                                              "Motor" = 2,
+                                                              "CDI and Motor Merged" = 3),
                   selected = 1),
       # Help text describes what the following widget does and what the user should do
       helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
@@ -165,9 +165,9 @@ shinyUI(fluidPage(
         # filter selected data
         br(),
         selectInput("merge_filter", "Variable to Filter", choices = c(""),selected = ""),
-        sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
-                                                                                                          
-        
+        sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1),
+        helpText("Download the selected & filtered data from datatable to csv file."),
+        downloadButton("download_selected_merge", "Download Selected & Filtered Data")
       ) # end of conditionalPanel (dataset merged)
       ), # end of sidebarPanel
 

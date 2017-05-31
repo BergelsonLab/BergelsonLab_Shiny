@@ -184,6 +184,14 @@ shinyServer(function(input, output, session) {
               # display table
               DT::datatable(df_filter())
             }) # end of table
+            
+            # download selected&filted data
+            output$download_selected_merge <- downloadHandler(
+              filename = "Seedling_Selected_and_Filtered_Data.csv",
+              content = function(file_out){
+                write.csv(df_filter(),file_out,row.names=FALSE)
+              })
+            
           }) # end of observe 3
       })   # end of observe 2
     }   # end of d()=3
