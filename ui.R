@@ -31,22 +31,26 @@ df_num = suppressWarnings(data.matrix(df_cdi)) %>% as.data.frame()
 ind_num <- which(sapply(df_num,function(x) any(is.na(x))==FALSE))
 df_cdi[,ind_num] <- sapply(df_cdi[,ind_num], as.numeric) # numeric column index
 
+###### gender information from cdi
+df_gender <- df_cdi %>% select(Subject_Number_,Child_gender) %>% unique()
 
 ####################################### clean df_motor
 ###### drop rows with missing value
 df_motor <- df_motor %>% na.omit()
 ###### set ResponseID as character
 df_motor$ResponseID <- as.character(df_motor$ResponseID)
+###### add gender information
+df_motor <- merge(df_motor,df_gender, key="Subject_Number_",all.x = TRUE)
 
 
 ################################ merge cdi dataset and motor dateset
 
 ###### duplicated columns
-col_dup <- setdiff(names(df_cdi)[names(df_cdi) %in% names(df_motor)],c("Subject_Number_","Subject_Month_"))
+col_dup <- setdiff(names(df_cdi)[names(df_cdi) %in% names(df_motor)],c("Subject_Number_","Subject_Month_","Child_gender"))
 colnames(df_cdi)[which(names(df_cdi) %in% col_dup)] <- paste0(col_dup,"_cdi")
 colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_motor")
 
-df_merge = merge(df_cdi,df_motor,by=c("Subject_Number_","Subject_Month_"))
+df_merge = merge(df_cdi,df_motor,key=c("Subject_Number_","Subject_Month_","Child_gender"))
 
 ######################################### Shiny UI ###############################################
 
@@ -80,7 +84,7 @@ motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
 motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
                  "weight","ageweight")
 
-motor_choice_x <- c("Age_Corrected")
+motor_choice_x <- c("Child_gender","Age_Corrected")
 
 ######################### UI
 
