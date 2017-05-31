@@ -5,16 +5,16 @@ library(dplyr)
 
 ###################################### load data #############################################
 # Read in cdi datafile to work with as df_cdi
-df_cdi <- read.csv("C:/Users/Liwen/Downloads/final_cdi_merged_cleaned.csv")
+df_cdi <- read.csv("C:/Users/Liwen/Downloads/final_cdi_merged_cleaned.csv", stringsAsFactors = FALSE)
 
 # Read in motor datafile to work with as df_motor
-df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv")
+df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
 
 ###################################### clean data ############################################
 
 ###################################### clean df_cdi
-###### drop rows with missing value, and convert all factor type into character type
-df_cdi = df_cdi %>%na.omit() %>%  mutate_if(is.factor,as.character)
+###### drop rows with missing value
+df_cdi = df_cdi %>%na.omit()
 ###### convert txt level to number
 df_cdi[df_cdi=='Yes'] <- 1                       # Convert 'Yes' values to = 1
 df_cdi[df_cdi=='No'] <- 0                        # Convert 'No' values to = 0
@@ -22,10 +22,15 @@ df_cdi[df_cdi=='Often'] <- 2                     # Convert 'Often' to = 2
 df_cdi[df_cdi=='Sometimes'] <- 1                 # Convert 'Sometimes' to = 1
 df_cdi[df_cdi=='Never'] <- 0                     # Convert 'Never' to = 0
 df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
-###### convert all character type into factor
-df_cdi = df_cdi %>%  mutate_if(is.character,as.factor)
+
 ###### set ResponseID as character
 df_cdi$ResponseID <- as.character(df_cdi$ResponseID)
+###### change type to numeric if possible (note: df_cdi has already dropped missing values)
+
+df_num = suppressWarnings(data.matrix(df_cdi)) %>% as.data.frame()
+ind_num <- which(sapply(df_num,function(x) any(is.na(x))==FALSE))
+df_cdi[,ind_num] <- sapply(df_cdi[,ind_num], as.numeric) # numeric column index
+
 
 ####################################### clean df_motor
 ###### drop rows with missing value
@@ -159,19 +164,16 @@ shinyUI(fluidPage(
                     multiple = TRUE),
         # filter selected data
         br(),
-        selectInput("merge_filter", "Variable to Filter", choices = c("")),
+        selectInput("merge_filter", "Variable to Filter", choices = c(""),selected = ""),
         sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
                                                                                                           
         
       ) # end of conditionalPanel (dataset merged)
-      
       ), # end of sidebarPanel
 
     # Show a the table and plot from user input in sidebar panel widgets
     mainPanel(
       h2("Survey Results", align = "center"),
-      plotOutput("plot_env", height = 5), # interactive environment,
-      plotOutput("plot_env2", height = 5), # interactive environment2,
       tabsetPanel(
         id = 'tab',
         tabPanel('table',DT::dataTableOutput("table")),

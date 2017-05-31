@@ -11,7 +11,7 @@ shinyServer(function(input, output, session) {
   y2 <- reactive({as.numeric(input$per_plot2)})
 
   
-  output$plot_env<-renderPlot({
+  observe({
   
     # select cdi data set
     if(d()==1){
@@ -155,51 +155,38 @@ shinyServer(function(input, output, session) {
         }
       })
       
-      output$plot_env2<-renderPlot({
+      observe({
         
         updateSelectInput(session, "merge_filter", label = "Variable to Filter",
-                          choices = names(select_if(select_merge(),is.numeric)))
-  
-        f_range <- reactive({
-          if (input$merge_filter==""){
-            c(0,0)
-          }else{
-            f_value <- unlist(df_merge[input$merge_filter])
-            range(na.omit(as.numeric(as.character(f_value))))
-          }
-
+                          choices = c("",names(select_if(select_merge(),is.numeric))),selected = "")
+        
+        observe({
+          f_range <- reactive({
+            if (input$merge_filter==""){
+              c(0,0)
+            }else{
+              f_value <- unlist(df_merge[input$merge_filter])
+              range(na.omit(as.numeric(as.character(f_value))))
+            }
           })
-
-        
-        output$table <- DT::renderDataTable({
-          print(f_range())
-          #updateSliderInput("merge_range","Filter Selected Data",value=c(0,1),min=f_range()[1],max =10,step = 1)
+          updateSliderInput(session,"merge_range","Filter Selected Data",value=f_range(),min=f_range()[1],max =f_range()[2],step = 1)
           
-          # display table
-          DT::datatable(select_merge())
-        })
-        
-        
-        
-      })
-      
-      # output$table <- DT::renderDataTable({
-      # 
-      #   # only numeric variables are allowed to filter
-      #   updateSelectInput(session, "merge_filter", label = "Variable to Filter",
-      #                     choices = names(select_if(select_merge(),is.numeric)))
-      #   #updateSliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
-      # 
-      #   # display table
-      #   DT::datatable(select_merge())
-      # })
-      # 
-
-
-      
-      
-      
+          df_filter <- reactive({
+            if(input$merge_filter==""){
+              select_merge()
+            }else{
+              select_merge() %>%
+                filter_(paste(input$merge_filter,">=",input$merge_range[1],"&",input$merge_filter,"<=",input$merge_range[2]))
+            }
+          })
+            
+            output$table <- DT::renderDataTable({
+              # display table
+              DT::datatable(df_filter())
+            }) # end of table
+          }) # end of observe 3
+      })   # end of observe 2
     }   # end of d()=3
-  })    # end of renderPlot
+  })    # end of observe 1
     
 })
