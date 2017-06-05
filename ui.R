@@ -13,8 +13,19 @@ df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv", 
 ###################################### clean data ############################################
 
 ###################################### clean df_cdi
+
+###### check missing
+df_cdi[df_cdi==""] <- NA
+df_cdi <- df_cdi[!is.na(df_cdi$ResponseID),]       # drop obs with missing ResponseID
+df_cdi <- df_cdi[!is.na(df_cdi$Subject_Number_),]  # drop obs with missing Subject Number
+df_cdi <- df_cdi %>% filter(df_cdi$SubjectNumber_Month != "P08_17") # drop P08_17
+
+######## note: temporary setting!!!
+df_cdi$AgeMonthCDI_Corrected[is.na(df_cdi$AgeMonthCDI_Corrected)] <- 13
+
+
 ###### drop rows with missing value
-df_cdi = df_cdi %>%na.omit()
+#df_cdi = df_cdi %>%na.omit()
 ###### convert txt level to number
 df_cdi[df_cdi=='Yes'] <- 1                       # Convert 'Yes' values to = 1
 df_cdi[df_cdi=='No'] <- 0                        # Convert 'No' values to = 0
@@ -35,6 +46,15 @@ df_cdi[,ind_num] <- sapply(df_cdi[,ind_num], as.numeric) # numeric column index
 df_gender <- df_cdi %>% select(Subject_Number_,Child_gender) %>% unique()
 
 ####################################### clean df_motor
+
+###### check missing
+# df_test <- df_motor %>% filter(is.na(ResponseID)) # check: when ResponseID is missing, everying is missing
+df_motor <- df_cdi[!is.na(df_motor$ResponseID),]     # drop obs with missing ResponseID
+
+
+
+
+
 ###### drop rows with missing value
 df_motor <- df_motor %>% na.omit()
 ###### set ResponseID as character
@@ -75,7 +95,7 @@ names(cdi_color_choices) <- names(df_cdi)
 cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
 cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
              "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
-cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
+cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected_cdi")
 
 ###### Motor
 ###### find factor variables
@@ -84,7 +104,7 @@ motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
 motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
                  "weight","ageweight")
 
-motor_choice_x <- c("Child_gender","Age_Corrected")
+motor_choice_x <- c("Child_gender","Age_Corrected_motor")
 
 ######################### UI
 
