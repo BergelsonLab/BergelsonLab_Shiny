@@ -112,7 +112,7 @@ cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
 ###### find factor variables
 num_ans <- sapply(df_motor,function(x) length(unique(x)))
 motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
-motor_basic <- c("SubjectNumber", "AgeMonthMotor_Corrected",
+motor_basic <- c("SubjectNumber", "AgeMonthMotor_Corrected","AgeDaysMotor",
                  "weight","ageweight","Child_gender")
 
 motor_choice_x <- c("Child_gender","AgeMonthMotor_Corrected")

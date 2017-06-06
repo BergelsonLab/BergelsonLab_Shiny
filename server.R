@@ -39,11 +39,11 @@ shinyServer(function(input, output, session) {
         if(dim(df)[2]==0){
           df_cdi[cdi_choice[[x()]]]
         }else{
-          df
+          cbind(df_cdi[cdi_basic],df)
         }
       })
       output$table <- DT::renderDataTable({
-        DT::datatable(select_cdi())
+        DT::datatable(select_cdi(), rownames = FALSE)
       })
       
       # download selected data
@@ -51,7 +51,7 @@ shinyServer(function(input, output, session) {
         filename = paste("Seedling Selected",names(radio_cdi)[x()],"Data.csv"),
         content = function(file_out){
 
-          write.csv(cbind(df_cdi[cdi_basic],select_cdi()),file_out,row.names=FALSE)
+          write.csv(select_cdi(),file_out,row.names=FALSE)
         })
       
       ## plot
@@ -59,7 +59,7 @@ shinyServer(function(input, output, session) {
       output$plot <- renderPlot(
         if(input$cdi_plot_x != "" & input$cdi_plot_y !=""){
           df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
-          plot1 <- ggplot(df1,na.rm = TRUE)+
+          plot1 <- ggplot(df1,na.rm = FALSE)+
             ggtitle(paste("The Distribution of",input$cdi_plot_y))+
             xlab(input$cdi_plot_x)+
             labs(fill=input$cdi_plot_y) +
@@ -68,9 +68,9 @@ shinyServer(function(input, output, session) {
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))
           
           if (y()==1){
-            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])))
+            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),width=0.9)
            }else{
-            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),position = "fill")+ ylab("percentage")
+            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),position = "fill",width=0.9)+ ylab("percentage")
            }
           }
       ) # end of rederPlot
@@ -92,28 +92,28 @@ shinyServer(function(input, output, session) {
       select_motor <- reactive({
         df <- df_motor[input$motor_colChoices]
         if(dim(df)[2]==0){
-          df_motor[,-c(1,2)]
+          df_motor
         }else{
-          df
+          cbind(df_motor[motor_basic],df)
         }
       })
       
       output$table <- DT::renderDataTable({
-        DT::datatable(select_motor())
+        DT::datatable(select_motor(), rownames = FALSE)
       })
       
       # download selected data
       output$download_selected_motor <- downloadHandler(
         filename = "Seedling_Selected_Motor_Data.csv",
         content = function(file_out){
-          write.csv(cbind(df_motor[motor_basic],select_motor()),file_out,row.names=FALSE)
+          write.csv(select_motor(),file_out,row.names=FALSE)
       })
       
       ## plot
       output$plot <- renderPlot(
         if(input$motor_plot_x != "" & input$motor_plot_y !=""){
           df2 <- df_motor[c(input$motor_plot_x,input$motor_plot_y)]
-          plot2 <- ggplot(df2,na.rm = TRUE)+
+          plot2 <- ggplot(df2,na.rm = FALSE)+
             ggtitle(paste("The Distribution of",input$motor_plot_y))+
             xlab(input$motor_plot_x)+
             labs(fill=input$motor_plot_y) +
@@ -122,9 +122,9 @@ shinyServer(function(input, output, session) {
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))
           
           if (y2()==1){
-            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])))
+            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),width=0.9)
           }else{
-            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),position = "fill")+ ylab("percentage")
+            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),position = "fill",width=0.9)+ ylab("percentage")
           }
         }
       )     # end of rederPlot
@@ -182,7 +182,7 @@ shinyServer(function(input, output, session) {
             
             output$table <- DT::renderDataTable({
               # display table
-              DT::datatable(df_filter())
+              DT::datatable(df_filter(), rownames = FALSE)
             }) # end of table
             
             # download selected&filted data
