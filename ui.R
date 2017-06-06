@@ -2,13 +2,14 @@
 ###################################### library package #######################################
 library(shiny)
 library(dplyr)
+library(stringr)
 
 ###################################### load data #############################################
 # Read in cdi datafile to work with as df_cdi
-df_cdi <- read.csv("C:/Users/Liwen/Downloads/final_cdi_merged_cleaned.csv", stringsAsFactors = FALSE)
+df_cdi <- read.csv("B:/Seedlings/Subject_Info_and_Paperwork/CDI & Motor/final_cdi_merged_cleaned.csv", stringsAsFactors = FALSE)
 
 # Read in motor datafile to work with as df_motor
-df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
+df_motor <- read.csv("B:/Seedlings/Subject_Info_and_Paperwork/CDI & Motor/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
 
 ###################################### clean data ############################################
 
@@ -17,12 +18,20 @@ df_motor <- read.csv("C:/Users/Liwen/Downloads/final_motor_merged_cleaned.csv", 
 ###### check missing
 df_cdi[df_cdi==""] <- NA
 df_cdi <- df_cdi[!is.na(df_cdi$ResponseID),]       # drop obs with missing ResponseID
-df_cdi <- df_cdi[!is.na(df_cdi$Subject_Number_),]  # drop obs with missing Subject Number
-df_cdi <- df_cdi %>% filter(df_cdi$SubjectNumber_Month != "P08_17") # drop P08_17
+df_cdi <- df_cdi[!df_cdi$SubjectNumber %in% c("P08_17","08semns1","08semns2"),] 
 
-######## note: temporary setting!!!
-df_cdi$AgeMonthCDI_Corrected[is.na(df_cdi$AgeMonthCDI_Corrected)] <- 13
 
+###### dealing with partial missing
+# ind_understand = grep("SubjectNumber|Subject_Month_|AgeMonthCDI_Corrected|^Understand_.*",names(df_cdi),value = FALSE) # column names starting with "Understand_"
+# df_cdi_understand <- df_cdi[,ind_understand]
+# df_cdi_understand$Subject_Number_ <- str_extract(df_cdi_understand$Subject_Number_,"\\d+")
+# df_cdi_understand$Subject_Month_ <- str_extract(df_cdi_understand$Subject_Month_,"\\d+") %>% as.numeric()
+# df_cdi_understand <- df_cdi_understand  %>% arrange(Subject_Number_,AgeMonthCDI_Corrected)
+# 
+
+
+###### For missing obs, if answering "yes" earlier, the missing cell will be "yes"
+###### For missing obs, if answering "no" later, the missing cell will be "no"
 
 ###### drop rows with missing value
 #df_cdi = df_cdi %>%na.omit()
@@ -34,53 +43,57 @@ df_cdi[df_cdi=='Sometimes'] <- 1                 # Convert 'Sometimes' to = 1
 df_cdi[df_cdi=='Never'] <- 0                     # Convert 'Never' to = 0
 df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
 
-###### set ResponseID as character
-df_cdi$ResponseID <- as.character(df_cdi$ResponseID)
 ###### change type to numeric if possible (note: df_cdi has already dropped missing values)
-
 df_num = suppressWarnings(data.matrix(df_cdi)) %>% as.data.frame()
 ind_num <- which(sapply(df_num,function(x) any(is.na(x))==FALSE))
 df_cdi[,ind_num] <- sapply(df_cdi[,ind_num], as.numeric) # numeric column index
 
+###### drop "ResponseID
+df_cdi$ResponseID <- NULL
+
 ###### gender information from cdi
-df_gender <- df_cdi %>% select(Subject_Number_,Child_gender) %>% unique()
+df_gender <- df_cdi %>% select(SubjectNumber,Child_gender)
+df_gender$Subj <- str_match(df_gender$SubjectNumber,"(.+)_")[,2]
+df_gender <- df_gender %>% 
+  select(Subj,Child_gender) %>% 
+  unique()
+
 
 ####################################### clean df_motor
 
 ###### check missing
-# df_test <- df_motor %>% filter(is.na(ResponseID)) # check: when ResponseID is missing, everying is missing
-df_motor <- df_cdi[!is.na(df_motor$ResponseID),]     # drop obs with missing ResponseID
-
-
-
-
-
+df_motor <- df_motor[!is.na(df_motor$ResponseID),]     # drop obs with missing ResponseID
+df_motor <- df_motor[!df_motor$Subject.Number_Month %in% c("P08_17","08semns1","08semns2"),] 
 ###### drop rows with missing value
-df_motor <- df_motor %>% na.omit()
-###### set ResponseID as character
-df_motor$ResponseID <- as.character(df_motor$ResponseID)
-###### add gender information
-df_motor <- merge(df_motor,df_gender, key="Subject_Number_",all.x = TRUE)
+#df_motor <- df_motor %>% na.omit()
 
+###### add gender information
+df_motor <- merge(df_motor,df_gender, key="Subj",all.x = TRUE)
+
+###### consistent name
+colnames(df_motor)[which(names(df_motor) %in% "Subject.Number_Month")] <- "SubjectNumber"
+
+###### drop "ResponseID"
+df_motor$ResponseID <- NULL
 
 ################################ merge cdi dataset and motor dateset
 
 ###### duplicated columns
-col_dup <- setdiff(names(df_cdi)[names(df_cdi) %in% names(df_motor)],c("Subject_Number_","Subject_Month_","Child_gender"))
+col_dup <- setdiff(names(df_cdi)[names(df_cdi) %in% names(df_motor)],c("SubjectNumber","Child_gender"))
 colnames(df_cdi)[which(names(df_cdi) %in% col_dup)] <- paste0(col_dup,"_cdi")
 colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_motor")
 
-df_merge = merge(df_cdi,df_motor,key=c("Subject_Number_","Subject_Month_","Child_gender"))
+df_merge = merge(df_cdi,df_motor,key=c("SubjectNumber","Child_gender"))
 
 ######################################### Shiny UI ###############################################
 
 ######################## options
 
 ###### CDI survey sections
-col_unerstand = grep("^Understand_.*",names(df_cdi),value = TRUE) # column names starting with "Understand_"
-col_first_sign = col_unerstand[1:3]                               # A. First Signs of Understanding
-col_phrases = col_unerstand[4:(length(col_unerstand)-2)]          # B. Phrases
-col_start_talk = col_unerstand[(length(col_unerstand)-1):length(col_unerstand)] # C. Starting to Talk
+col_understand = grep("^Understand_.*",names(df_cdi),value = TRUE) # column names starting with "Understand_"
+col_first_sign = col_understand[1:3]                               # A. First Signs of Understanding
+col_phrases = col_understand[4:(length(col_understand)-2)]        # B. Phrases
+col_start_talk = col_understand[(length(col_understand)-1):length(col_understand)] # C. Starting to Talk
 col_talk = grep("^Talk_.*",names(df_cdi),value = TRUE)            # D.Vocabulary Checklist
 col_gestures = grep("^Gestures_.*",names(df_cdi),value = TRUE)    # column names starting with "Gestures_"
 col_first_gest = col_gestures[1:12]                               # A. First Communicative Gestures
@@ -89,22 +102,20 @@ col_gest = col_gestures[13:length(col_gestures)]                  # B.-E.
 radio_cdi <- list("First Signs of Understanding" = 1, "Phrases Understood" = 2,
      "Starting to Produce" = 3, "Vocab Checklist" = 4, "Gestures_ASN" = 5, "Games and Routines" = 6)
 
-cdi_color_choices <- c(1:ncol(df_cdi))
-names(cdi_color_choices) <- names(df_cdi)
 
 cdi_choice = list(col_first_sign,col_phrases,col_start_talk,col_talk,col_first_gest,col_gest)
-cdi_basic= c("SubjectNumber_Month", "Subject_Number_","Subject_Month_","AgeMonthCDI_Uncorrected",
-             "AgeDaysCDI", "WithinTenDays_final", "AgeMonthCDI_Corrected","Child_gender")
-cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected_cdi")
+cdi_basic= c("SubjectNumber","AgeMonthCDI_Corrected",
+             "AgeDaysCDI", "WithinTenDays_final","Child_gender")
+cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
 
 ###### Motor
 ###### find factor variables
 num_ans <- sapply(df_motor,function(x) length(unique(x)))
 motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
-motor_basic <- c("Subject_Number_","Subject_Month_", "Age_Corrected",
-                 "weight","ageweight")
+motor_basic <- c("SubjectNumber", "AgeMonthMotor_Corrected",
+                 "weight","ageweight","Child_gender")
 
-motor_choice_x <- c("Child_gender","Age_Corrected_motor")
+motor_choice_x <- c("Child_gender","AgeMonthMotor_Corrected")
 
 ######################### UI
 
