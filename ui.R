@@ -124,96 +124,107 @@ shinyUI(fluidPage(
   # Application title
   titlePanel(h1("Seedling Survey Results")),
   
-  # Sidebar with widgets for user manipulation of data and display in main panel
-  # 1st Download Button and Radio Button remain present regardless of user input
-  sidebarLayout(
-    sidebarPanel(
-      # Drop down menu to allow users to select either CDI survey or Motor survey to analyze
-      selectInput("dataset", "Choose Dataset", choices = list("CDI" = 1, 
-                                                              "Motor" = 2,
-                                                              "CDI and Motor Merged" = 3),
-                  selected = 1),
-      # Help text describes what the following widget does and what the user should do
-      helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
-      # Create button to download csv file from the app to user's local machine.
-      downloadButton("downloadData", "Download Full Data"),
+  ##################### TRY: new layout
+  
+  fluidRow(
+    #column1
+    column(3,
+           selectInput("dataset", "Choose Dataset", choices = list("CDI" = 1, 
+                                                                   "Motor" = 2,
+                                                                   "CDI and Motor Merged" = 3),
+                       selected = 1),
+           # Help text describes what the following widget does and what the user should do
+           helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
+           # Create button to download csv file from the app to user's local machine.
+           downloadButton("downloadData", "Download Full Data")
+           ), # end of column1
+    
+    
+    # Only display these widgets if user selected CDI dataset becasue these only apply to CDI survey
+    conditionalPanel(
       
-      hr(),
-      strong("Select Columns"),
+      condition = "input.dataset == 1",
       
-      # Only display these widgets if user selected CDI dataset becasue these only apply to CDI survey
-      conditionalPanel(
-        
-        condition = "input.dataset == 1",
-        helpText("Select word/phrase options to analyze from CDI dataset"),
-        # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
-        radioButtons("radioButton", label = "Select set of words/phrases: ",
-                     choices = radio_cdi),
-        hr(),
-        helpText("Select the columns that you wish to view in the data table"),
-        selectInput("cdi_colChoices", label = "Select Columns for Data Table",
-                    choices = cdi_choice[[1]],
-                    multiple = TRUE),
-        helpText("Download the selected data from datatable to csv file."),
-        downloadButton("download_selected_cdi", "Download Selected Data"),
-        hr(),
-        
-        # plot
-        strong("Plot"),
-        helpText("Select the two variables you wish to view in the plot."),
-        selectInput("cdi_plot_y", label = "Variable you want to view",
-                       choices = c("",cdi_choice[[1]]), selected = ""),
-        selectInput("cdi_plot_x", label = "Color/Category",
-                    choices = c("",cdi_choice_x), selected = ""),
-        radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
- 
-      ), # end of conditionalPanel (dataset1) 
+      #column2
+      column(4,
+             strong("Select Columns"),
+             helpText("Select word/phrase options to analyze from CDI dataset"),
+             # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
+             radioButtons("radioButton", label = "Select set of words/phrases: ",
+                          choices = radio_cdi),
+             hr(),
+             helpText("Select the columns that you wish to view in the data table"),
+             selectInput("cdi_colChoices", label = "Select Columns for Data Table",
+                         choices = cdi_choice[[1]],
+                         multiple = TRUE),
+             helpText("Download the selected data from datatable to csv file."),
+             downloadButton("download_selected_cdi", "Download Selected Data")
+             ), #end of column2
       
-      conditionalPanel(
-        condition = "input.dataset == 2",
-        helpText("Select columns that you wish to view in the table"),
-        selectInput("motor_colChoices", label = "Select Columns for Data Table",
-                    choices = motor_choice,
-                    multiple = TRUE),
-        downloadButton("download_selected_motor", "Download Selected Data"),
-        hr(),
-        #plot
-        strong("Plot"),
-        helpText("Select the two variables you wish to view in the plot."),
-        selectInput("motor_plot_y", label = "Variable you want to view",
-                    choices = c("",motor_choice), selected = ""),
-        selectInput("motor_plot_x", label = "Color/Category",
-                    choices = c("",motor_choice_x), selected = ""),
-        radioButtons('per_plot2', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
-        
-      ), # end of conditionalPanel (dataset2)
-      conditionalPanel(
-        condition = "input.dataset == 3",
-        helpText("Select word/phrase options to analyze from CDI dataset"),
-        radioButtons("radioButton_merge", label = "Select set of words/phrases from CDI dataset: ",
-                     choices = radio_cdi),
-        hr(),        
-        helpText("Select the columns that you wish to view in the data table (from both CDI and Motor datasets)"),
-        selectInput("merge_colChoices", label = "Select Columns for Data Table",
-                    choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[1]],motor_choice)))),
-                    multiple = TRUE),
-        # filter selected data
-        br(),
-        selectInput("merge_filter", "Variable to Filter", choices = c(""),selected = ""),
-        sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1),
-        helpText("Download the selected & filtered data from datatable to csv file."),
-        downloadButton("download_selected_merge", "Download Selected & Filtered Data")
-      ) # end of conditionalPanel (dataset merged)
-      ), # end of sidebarPanel
+      #column3
+      column(4,
+             strong("Plot"),
+             helpText("Select the two variables you wish to view in the plot."),
+             selectInput("cdi_plot_y", label = "Variable you want to view",
+                         choices = c("",cdi_choice[[1]]), selected = ""),
+             selectInput("cdi_plot_x", label = "Color/Category",
+                         choices = c("",cdi_choice_x), selected = ""),
+             radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
+             )
+    ), # end of conditionalPanel (dataset1) 
+    
+    conditionalPanel(
+      condition = "input.dataset == 2",
+      
+      column(4,
+             strong("Select Columns"),
+             helpText("Select columns that you wish to view in the table"),
+             selectInput("motor_colChoices", label = "Select Columns for Data Table",
+                         choices = motor_choice,
+                         multiple = TRUE),
+             downloadButton("download_selected_motor", "Download Selected Data")
+             ),
+      
+      column(4,
+             strong("Plot"),
+             helpText("Select the two variables you wish to view in the plot."),
+             selectInput("motor_plot_y", label = "Variable you want to view",
+                         choices = c("",motor_choice), selected = ""),
+             selectInput("motor_plot_x", label = "Color/Category",
+                         choices = c("",motor_choice_x), selected = ""),
+             radioButtons('per_plot2', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
+             )
+    ), # end of conditionalPanel (dataset2)
+    conditionalPanel(
+      condition = "input.dataset == 3",
+      
+      column(4,
+             helpText("Select word/phrase options to analyze from CDI dataset"),
+             radioButtons("radioButton_merge", label = "Select set of words/phrases from CDI dataset: ",
+                          choices = radio_cdi),
+             hr(),        
+             helpText("Select the columns that you wish to view in the data table (from both CDI and Motor datasets)"),
+             selectInput("merge_colChoices", label = "Select Columns for Data Table",
+                         choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[1]],motor_choice)))),
+                         multiple = TRUE)
+             ),
+      
+      column(4,
+             strong("filter selected data"),
+             selectInput("merge_filter", "Variable to Filter", choices = c(""),selected = ""),
+             sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1),
+             helpText("Download the selected & filtered data from datatable to csv file."),
+             downloadButton("download_selected_merge", "Download Selected & Filtered Data")
+             )
 
-    # Show a the table and plot from user input in sidebar panel widgets
-    mainPanel(
-      h2("Survey Results", align = "center"),
-      tabsetPanel(
-        id = 'tab',
-        tabPanel('table',DT::dataTableOutput("table")),
-        tabPanel('Plot',plotOutput("plot", height = 500))
-      )
-      )
-)
+    ) # end of conditionalPanel (dataset merged)
+
+  ),
+  
+  h2("Survey Results", align = "center"),
+  tabsetPanel(
+    id = 'tab',
+    tabPanel('table',DT::dataTableOutput("table")),
+    tabPanel('Plot',plotOutput("plot", height = 500))
+  )
 ))
