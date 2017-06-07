@@ -191,9 +191,42 @@ shinyServer(function(input, output, session) {
               content = function(file_out){
                 write.csv(df_filter(),file_out,row.names=FALSE)
               })
-            
           }) # end of observe 3
       })   # end of observe 2
+      
+      ## plot
+      x_plot <- reactive({as.numeric(input$plot_sec)})
+      updateSelectInput(session,"plot_var", label = "Variable(s) you wish to view in the plot",
+                        choices = merge_choice[[x_plot()]])
+      
+      observe({
+        plot_var_range <- reactive({
+          var_value <- unlist(df_merge[input$plot_filter])
+          range(na.omit(as.numeric(as.character(var_value))))
+        })
+        
+        updateSliderInput(session,"plot_range","Filter Selected Data",value=plot_var_range(),min=plot_var_range()[1],max =plot_var_range()[2],step = 1)
+        
+        df_plot <- reactive({
+          if(x_plot()<=6){
+            df_merge[c(input$plot_filter,"AgeMonthCDI_Corrected",input$plot_var)] %>%
+              filter_(paste(input$plot_filter,">=",input$plot_range[1],"&",input$plot_filter,"<=",input$plot_range[2]))
+          }else{
+            df_merge[c(input$plot_filter,"AgeMonthMotor_Corrected",input$plot_var)]%>%
+              filter_(paste(input$plot_filter,">=",input$plot_range[1],"&",input$plot_filter,"<=",input$plot_range[2]))
+          }
+        })
+        
+
+        output$plot <- renderPlot({
+          # print(dim(df_plot()))
+          # print(names(df_plot()))
+
+        })# # end of rederPlot
+        
+      }) # observe 2(plot)
+
+      
     }   # end of d()=3
   })    # end of observe 1
     

@@ -111,11 +111,15 @@ cdi_choice_x <- c("Child_gender","AgeMonthCDI_Corrected")
 ###### Motor
 ###### find factor variables
 num_ans <- sapply(df_motor,function(x) length(unique(x)))
-motor_choice <- num_ans[num_ans>1 & num_ans < 10] %>% names()
+
+
+motor_choice <- names(df_motor)[which(names(df_motor)=="rest_on_body"):which(names(df_motor)=="somersault")]
 motor_basic <- c("SubjectNumber", "AgeMonthMotor_Corrected","AgeDaysMotor",
                  "weight","ageweight","Child_gender")
 
 motor_choice_x <- c("Child_gender","AgeMonthMotor_Corrected")
+
+merge_choice = c(cdi_choice,list(motor_choice))
 
 ######################### UI
 
@@ -128,13 +132,11 @@ shinyUI(fluidPage(
   
   fluidRow(
     #column1
-    column(3,
+    column(2,
            selectInput("dataset", "Choose Dataset", choices = list("CDI" = 1, 
                                                                    "Motor" = 2,
                                                                    "CDI and Motor Merged" = 3),
                        selected = 1),
-           # Help text describes what the following widget does and what the user should do
-           helpText("Download data to a csv file containing all rows and columns from the selected .csv file above"),
            # Create button to download csv file from the app to user's local machine.
            downloadButton("downloadData", "Download Full Data")
            ), # end of column1
@@ -146,7 +148,7 @@ shinyUI(fluidPage(
       condition = "input.dataset == 1",
       
       #column2
-      column(4,
+      column(3,
              strong("Select Columns"),
              helpText("Select word/phrase options to analyze from CDI dataset"),
              # Allows user to select 1 of the choices; this input impacts the possible inputs for table and plot
@@ -162,7 +164,7 @@ shinyUI(fluidPage(
              ), #end of column2
       
       #column3
-      column(4,
+      column(3,
              strong("Plot"),
              helpText("Select the two variables you wish to view in the plot."),
              selectInput("cdi_plot_y", label = "Variable you want to view",
@@ -176,7 +178,7 @@ shinyUI(fluidPage(
     conditionalPanel(
       condition = "input.dataset == 2",
       
-      column(4,
+      column(3,
              strong("Select Columns"),
              helpText("Select columns that you wish to view in the table"),
              selectInput("motor_colChoices", label = "Select Columns for Data Table",
@@ -185,7 +187,7 @@ shinyUI(fluidPage(
              downloadButton("download_selected_motor", "Download Selected Data")
              ),
       
-      column(4,
+      column(3,
              strong("Plot"),
              helpText("Select the two variables you wish to view in the plot."),
              selectInput("motor_plot_y", label = "Variable you want to view",
@@ -198,7 +200,7 @@ shinyUI(fluidPage(
     conditionalPanel(
       condition = "input.dataset == 3",
       
-      column(4,
+      column(3,
              helpText("Select word/phrase options to analyze from CDI dataset"),
              radioButtons("radioButton_merge", label = "Select set of words/phrases from CDI dataset: ",
                           choices = radio_cdi),
@@ -209,16 +211,24 @@ shinyUI(fluidPage(
                          multiple = TRUE)
              ),
       
-      column(4,
+      column(3,
              strong("filter selected data"),
              selectInput("merge_filter", "Variable to Filter", choices = c(""),selected = ""),
              sliderInput("merge_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1),
              helpText("Download the selected & filtered data from datatable to csv file."),
              downloadButton("download_selected_merge", "Download Selected & Filtered Data")
-             )
-
+             ),
+      
+      column(3,
+             strong("Plot"),
+             selectInput("plot_sec", "Question section to view", choices = c(radio_cdi,"Motor"=7)),
+             selectInput("plot_var", label = "Variable(s) you wish to view in the plot",
+                         choices = merge_choice[[1]],
+                         multiple = TRUE),
+             selectInput("plot_filter", "Variable to Filter", choices = c("weight",unlist(merge_choice))),
+             sliderInput("plot_range","Filter Selected Data",value=c(0,1),min=0,max =1,step = 1)
+      )
     ) # end of conditionalPanel (dataset merged)
-
   ),
   
   h2("Survey Results", align = "center"),
