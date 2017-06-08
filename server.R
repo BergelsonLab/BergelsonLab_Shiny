@@ -2,6 +2,7 @@ library(shiny)
 library(DT)
 library(tidyverse)
 library(ggplot2)
+library(reshape2)
 
 shinyServer(function(input, output, session) {
   
@@ -209,19 +210,52 @@ shinyServer(function(input, output, session) {
         
         df_plot <- reactive({
           if(x_plot()<=6){
-            df_merge[c(input$plot_filter,"AgeMonthCDI_Corrected",input$plot_var)] %>%
+            df_res <- df_merge[c(input$plot_filter,"AgeMonthCDI_Corrected",input$plot_var)] %>%
               filter_(paste(input$plot_filter,">=",input$plot_range[1],"&",input$plot_filter,"<=",input$plot_range[2]))
           }else{
-            df_merge[c(input$plot_filter,"AgeMonthMotor_Corrected",input$plot_var)]%>%
+            df_res <-df_merge[c(input$plot_filter,"AgeMonthMotor_Corrected",input$plot_var)]%>%
               filter_(paste(input$plot_filter,">=",input$plot_range[1],"&",input$plot_filter,"<=",input$plot_range[2]))
           }
+          return(df_res[,-1])
         })
         
 
         output$plot <- renderPlot({
-          # print(dim(df_plot()))
-          # print(names(df_plot()))
+          if(length(input$plot_var)>0){
+            max_var <- sapply(df_plot()[,-1],function(x) max(na.omit(x))) %>% unlist() %>% max()
+            df1 <- df_plot() %>%
+              group_by_(names(df_plot())[1], names(df_plot())[2]) %>%
+              summarise (n=n()) %>%
+              mutate(rel.freq = n/sum(n)) %>%
+              filter_(paste(names(df_plot())[2],"==",max_var))
+            df1 <- df1[,c(1,4)]
+            colnames(df1)[2] <- names(df_plot())[2]
+            
+            if (length(input$plot_var)>1){
+              for (i in 3:dim(df_plot())[2]){
+                df2 <- df_plot() %>%
+                  group_by_(names(df_plot())[1], names(df_plot())[i]) %>%
+                  summarise (n=n()) %>%
+                  mutate(rel.freq = n/sum(n)) %>%
+                  filter_(paste(names(df_plot())[i],"==",max_var))
+                df2 <- df2[,c(1,4)]
+                colnames(df2)[2] <- names(df_plot())[i]
+                df1 = merge(df1,df2,key = names(df_plot())[1], all = TRUE)
+              }
+            } # end of 'if (length(input$plot_var)>1)'
+            
+            df_long <- melt(df1, id=names(df_plot())[1])
 
+            ggplot(data = df_long, aes(x = df_long[,1], y = value, color = variable),na.rm = TRUE) +
+              geom_point(alpha=0.5) +
+              geom_smooth(method = "loess", se = FALSE) +
+              ylab("percentage")+
+              xlab(names(df_plot())[1])+
+              theme(plot.title = element_text(hjust = 0.5),
+                    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                    panel.background = element_blank(), axis.line = element_line(colour = "black"))
+            
+          } # end of 'if (length(input$plot_var)>0)'
         })# # end of rederPlot
         
       }) # observe 2(plot)

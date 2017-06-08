@@ -85,6 +85,13 @@ colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_moto
 
 df_merge = merge(df_cdi,df_motor,key=c("SubjectNumber","Child_gender"))
 
+# ###### change type to numeric if possible (note: df_cdi has already dropped missing values)
+# df_merge_num = suppressWarnings(data.matrix(df_merge)) %>% as.data.frame()
+# sum_merge <- sapply(df_merge,function(x) sum(is.na(x)))
+# sum_merge_num <- sapply(df_merge_num,function(x) sum(is.na(x)))
+# ind_merge_num <- which(sum_merge == sum_merge_num)
+# df_merge[,ind_merge_num] <- sapply(df_merge[,ind_merge_num], as.numeric)
+
 ######################################### Shiny UI ###############################################
 
 ######################## options
