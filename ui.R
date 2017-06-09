@@ -18,17 +18,8 @@ df_motor <- read.csv("B:/Seedlings/Subject_Info_and_Paperwork/CDI & Motor/final_
 ###### check missing
 df_cdi[df_cdi==""] <- NA
 df_cdi <- df_cdi[!is.na(df_cdi$ResponseID),]       # drop obs with missing ResponseID
-df_cdi <- df_cdi[!df_cdi$SubjectNumber %in% c("P08_17","08semns1","08semns2"),] 
-
-
-###### dealing with partial missing
-# ind_understand = grep("SubjectNumber|Subject_Month_|AgeMonthCDI_Corrected|^Understand_.*",names(df_cdi),value = FALSE) # column names starting with "Understand_"
-# df_cdi_understand <- df_cdi[,ind_understand]
-# df_cdi_understand$Subject_Number_ <- str_extract(df_cdi_understand$Subject_Number_,"\\d+")
-# df_cdi_understand$Subject_Month_ <- str_extract(df_cdi_understand$Subject_Month_,"\\d+") %>% as.numeric()
-# df_cdi_understand <- df_cdi_understand  %>% arrange(Subject_Number_,AgeMonthCDI_Corrected)
-# 
-
+###### filter dataa
+df_cdi <- df_cdi %>% filter(grepl("[a-z]",SubjectNumber,ignore.case = TRUE)==FALSE)
 
 ###### For missing obs, if answering "yes" earlier, the missing cell will be "yes"
 ###### For missing obs, if answering "no" later, the missing cell will be "no"
@@ -43,10 +34,7 @@ df_cdi[df_cdi=='Sometimes'] <- 1                 # Convert 'Sometimes' to = 1
 df_cdi[df_cdi=='Never'] <- 0                     # Convert 'Never' to = 0
 df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
 
-###### change type to numeric if possible (note: df_cdi has already dropped missing values)
-df_num = suppressWarnings(data.matrix(df_cdi)) %>% as.data.frame()
-ind_num <- which(sapply(df_num,function(x) any(is.na(x))==FALSE))
-df_cdi[,ind_num] <- sapply(df_cdi[,ind_num], as.numeric) # numeric column index
+
 
 ###### drop "ResponseID
 df_cdi$ResponseID <- NULL
@@ -63,7 +51,10 @@ df_gender <- df_gender %>%
 
 ###### check missing
 df_motor <- df_motor[!is.na(df_motor$ResponseID),]     # drop obs with missing ResponseID
-df_motor <- df_motor[!df_motor$Subject.Number_Month %in% c("P08_17","08semns1","08semns2"),] 
+
+###### filter dataa
+df_motor <- df_motor %>% filter(grepl("[a-z]",Subj,ignore.case = TRUE)==FALSE)
+
 ###### drop rows with missing value
 #df_motor <- df_motor %>% na.omit()
 
@@ -85,12 +76,12 @@ colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_moto
 
 df_merge = merge(df_cdi,df_motor,key=c("SubjectNumber","Child_gender"))
 
-# ###### change type to numeric if possible (note: df_cdi has already dropped missing values)
-# df_merge_num = suppressWarnings(data.matrix(df_merge)) %>% as.data.frame()
-# sum_merge <- sapply(df_merge,function(x) sum(is.na(x)))
-# sum_merge_num <- sapply(df_merge_num,function(x) sum(is.na(x)))
-# ind_merge_num <- which(sum_merge == sum_merge_num)
-# df_merge[,ind_merge_num] <- sapply(df_merge[,ind_merge_num], as.numeric)
+###### change type to numeric if possible (note: df_cdi has already dropped missing values)
+df_merge_num = suppressWarnings(data.matrix(df_merge)) %>% as.data.frame()
+sum_merge <- sapply(df_merge,function(x) sum(is.na(x)))
+sum_merge_num <- sapply(df_merge_num,function(x) sum(is.na(x)))
+ind_merge_num <- which(sum_merge == sum_merge_num)
+df_merge[,ind_merge_num] <- sapply(df_merge[,ind_merge_num], as.numeric)
 
 ######################################### Shiny UI ###############################################
 
@@ -242,6 +233,9 @@ shinyUI(fluidPage(
   tabsetPanel(
     id = 'tab',
     tabPanel('table',DT::dataTableOutput("table")),
-    tabPanel('Plot',plotOutput("plot", height = 500))
+    tabPanel('Plot',plotOutput("plot", height = 500, click = "plot1_click"),
+             conditionalPanel(
+               condition = "input.dataset == 3",
+               verbatimTextOutput("click_info")))
   )
 ))

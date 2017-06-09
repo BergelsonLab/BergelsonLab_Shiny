@@ -3,6 +3,7 @@ library(DT)
 library(tidyverse)
 library(ggplot2)
 library(reshape2)
+library(knitr)
 
 shinyServer(function(input, output, session) {
   
@@ -152,7 +153,7 @@ shinyServer(function(input, output, session) {
         if(dim(df)[2]==0){
           df_merge[unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[x_merge()]],motor_choice))))]
         }else{
-          df
+          df 
         }
       })
       
@@ -220,7 +221,7 @@ shinyServer(function(input, output, session) {
         })
         
 
-        output$plot <- renderPlot({
+        observe({
           if(length(input$plot_var)>0){
             max_var <- sapply(df_plot()[,-1],function(x) max(na.omit(x))) %>% unlist() %>% max()
             df1 <- df_plot() %>%
@@ -228,8 +229,9 @@ shinyServer(function(input, output, session) {
               summarise (n=n()) %>%
               mutate(rel.freq = n/sum(n)) %>%
               filter_(paste(names(df_plot())[2],"==",max_var))
-            df1 <- df1[,c(1,4)]
-            colnames(df1)[2] <- names(df_plot())[2]
+            df1 <- df1[,-2]
+            colnames(df1)[3] <- paste0("per_",names(df_plot())[2])
+            colnames(df1)[2] <- paste0("n_",names(df_plot())[2])
             
             if (length(input$plot_var)>1){
               for (i in 3:dim(df_plot())[2]){
@@ -238,25 +240,53 @@ shinyServer(function(input, output, session) {
                   summarise (n=n()) %>%
                   mutate(rel.freq = n/sum(n)) %>%
                   filter_(paste(names(df_plot())[i],"==",max_var))
-                df2 <- df2[,c(1,4)]
-                colnames(df2)[2] <- names(df_plot())[i]
+                df2 <- df2[,-2]
+                colnames(df2)[3] <- paste0("per_",names(df_plot())[i])
+                colnames(df2)[2] <- paste0("n_",names(df_plot())[i])
                 df1 = merge(df1,df2,key = names(df_plot())[1], all = TRUE)
               }
             } # end of 'if (length(input$plot_var)>1)'
             
-            df_long <- melt(df1, id=names(df_plot())[1])
-
-            ggplot(data = df_long, aes(x = df_long[,1], y = value, color = variable),na.rm = TRUE) +
-              geom_point(alpha=0.5) +
-              geom_smooth(method = "loess", se = FALSE) +
-              ylab("percentage")+
-              xlab(names(df_plot())[1])+
-              theme(plot.title = element_text(hjust = 0.5),
-                    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                    panel.background = element_blank(), axis.line = element_line(colour = "black"))
+            col_melt_per <- grep("^per_",names(df1))
+            df_long0 <- melt(df1[,c(1,col_melt_per)], id=names(df_plot())[1])
+            df_long0$variable <- as.character(df_long0$variable)
+            df_long0$variable <- str_match(df_long0$variable,"^per_(.+)")[,2]
+            colnames(df_long0)[3] <- "percentage"
             
+            col_melt_n <- grep("^n_",names(df1))
+            df_long1 <- melt(df1[,c(1,col_melt_n)], id=names(df_plot())[1])
+            df_long1$variable <- as.character(df_long1$variable)
+            df_long1$variable <- str_match(df_long1$variable,"^n_(.+)")[,2]
+            colnames(df_long1)[3] <- "number"
+            
+            
+            
+            df_long <- merge(df_long0,df_long1,  key = c(names(df_plot())[1], "variable"), all = TRUE)
+            
+            output$plot <- renderPlot({
+              ggplot(data = df_long, aes(x = df_long[,1], y = percentage, color = variable),na.rm = TRUE) +
+                geom_point(alpha=0.5) +
+                geom_smooth(method = "loess", se = FALSE) +
+                ylab("percentage")+
+                xlab(names(df_plot())[1])+
+                theme(plot.title = element_text(hjust = 0.5),
+                      panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                      panel.background = element_blank(), axis.line = element_line(colour = "black"))
+            }) # end of render plot
+
+            ###################### try click, start########
+
+            output$click_info <- renderPrint({
+              kable(nearPoints(df_long, input$plot1_click, addDist = FALSE, xvar = names(df_long)[1], yvar = "percentage"), row.names = FALSE)
+            })
+            ###################### try click, stop ########
+
+
           } # end of 'if (length(input$plot_var)>0)'
-        })# # end of rederPlot
+        })# # end of observe3(plot)
+        
+
+        
         
       }) # observe 2(plot)
 
