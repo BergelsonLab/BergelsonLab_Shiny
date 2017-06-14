@@ -222,8 +222,12 @@ shinyServer(function(input, output, session) {
         
 
         observe({
+          
           if(length(input$plot_var)>0){
-            max_var <- sapply(df_plot()[,-1],function(x) max(na.omit(x))) %>% unlist() %>% max()
+
+            if(any(!is.na(df_plot()[,-1]))){
+            
+            max_var <- sapply(df_plot()[,-1],function(x) max(na.omit(x))) %>% unlist()  %>% max()
             df1 <- df_plot() %>%
               group_by_(names(df_plot())[1], names(df_plot())[2]) %>%
               summarise (n=n()) %>%
@@ -282,11 +286,9 @@ shinyServer(function(input, output, session) {
             ###################### try click, stop ########
 
 
+            }   # end of 'if(length(plot_var)>0)'
           } # end of 'if (length(input$plot_var)>0)'
-        })# # end of observe3(plot)
-        
-
-        
+        })# # end of observe3(plot)   
         
       }) # observe 2(plot)
 
