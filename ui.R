@@ -67,6 +67,9 @@ colnames(df_motor)[which(names(df_motor) %in% "Subject.Number_Month")] <- "Subje
 ###### drop "ResponseID"
 df_motor$ResponseID <- NULL
 
+###### missing data: drop "text" variables
+df_motor <- df_motor %>% select(-crawling_belly_TEXT, -crawling_hands_knees_TEXT,-cruising_TEXT,-walking_TEXT)
+
 ################################ merge cdi dataset and motor dateset
 
 ###### duplicated columns

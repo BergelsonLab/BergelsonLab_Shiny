@@ -281,7 +281,7 @@ shinyServer(function(input, output, session) {
             ###################### try click, start########
 
             output$click_info <- renderPrint({
-              kable(nearPoints(df_long, input$plot1_click, addDist = FALSE, xvar = names(df_long)[1], yvar = "percentage"), row.names = FALSE)
+              print(nearPoints(df_long, input$plot1_click, addDist = FALSE, xvar = names(df_long)[1], yvar = "percentage"), row.names = F)
             })
             ###################### try click, stop ########
 
