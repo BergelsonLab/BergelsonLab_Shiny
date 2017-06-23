@@ -39,10 +39,19 @@ shinyServer(function(input, output, session) {
         df <- df_cdi[input$cdi_colChoices]
         
         if(dim(df)[2]==0){
-          df_cdi[cdi_choice[[x()]]]
-        }else{
-          cbind(df_cdi[cdi_basic],df)
+          df <- df_cdi[cdi_choice[[x()]]]
         }
+
+        ### for each row, count column answers
+        top_level <- df %>% unlist() %>% na.omit() %>% max()
+        df_res <- df
+        for (i in 0:top_level){
+          df_count <- rowSums(df== i ) %>% as.data.frame()
+          names(df_count) <- paste0("count_",i)
+          df_res <- cbind(df_res,df_count)
+        }
+        
+        cbind(df_cdi[cdi_basic],df_res)
       })
       output$table <- DT::renderDataTable({
         DT::datatable(select_cdi(), rownames = FALSE)
@@ -94,10 +103,19 @@ shinyServer(function(input, output, session) {
       select_motor <- reactive({
         df <- df_motor[input$motor_colChoices]
         if(dim(df)[2]==0){
-          df_motor
-        }else{
-          cbind(df_motor[motor_basic],df)
+          df <- df_motor[motor_choice]
         }
+        
+        ### for each row, count column answers
+        top_level <- df %>% unlist() %>% na.omit() %>% max()
+        df_res <- df
+        for (i in 1:top_level){
+          df_count <- rowSums(df== i ) %>% as.data.frame()
+          names(df_count) <- paste0("count_",i)
+          df_res <- cbind(df_res,df_count)
+        }
+        
+        cbind(df_motor[motor_basic],df_res)
       })
       
       output$table <- DT::renderDataTable({
