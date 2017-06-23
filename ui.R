@@ -168,8 +168,8 @@ shinyUI(fluidPage(
       column(3,
              strong("Plot"),
              helpText("Select the two variables you wish to view in the plot."),
-             selectInput("cdi_plot_y", label = "Variable you want to view",
-                         choices = c("",cdi_choice[[1]]), selected = ""),
+             selectizeInput("cdi_plot_y", label = "Variable(s) you want to view (up to 3 items)",
+                         choices = cdi_choice[[1]],multiple = TRUE, options = list(maxItems = 3)),
              selectInput("cdi_plot_x", label = "Color/Category",
                          choices = c("",cdi_choice_x), selected = ""),
              radioButtons('per_plot', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
@@ -191,8 +191,8 @@ shinyUI(fluidPage(
       column(3,
              strong("Plot"),
              helpText("Select the two variables you wish to view in the plot."),
-             selectInput("motor_plot_y", label = "Variable you want to view",
-                         choices = c("",motor_choice), selected = ""),
+             selectizeInput("motor_plot_y", label = "Variable(s) you want to view (up to 3 items)",
+                         choices = motor_choice,multiple = TRUE, options = list(maxItems = 3)),
              selectInput("motor_plot_x", label = "Color/Category",
                          choices = c("",motor_choice_x), selected = ""),
              radioButtons('per_plot2', 'Y-axis', list('Count'=1,'Percentage'=2), selected = 2)
@@ -203,12 +203,12 @@ shinyUI(fluidPage(
       
       column(3,
              helpText("Select word/phrase options to analyze from CDI dataset"),
-             radioButtons("radioButton_merge", label = "Select set of words/phrases from CDI dataset: ",
-                          choices = radio_cdi),
+             checkboxGroupInput("checkbox_merge", label = "Select set of words/phrases from CDI dataset: ",
+                          choices = c(radio_cdi, "Motor" = 7)),
              hr(),        
              helpText("Select the columns that you wish to view in the data table (from both CDI and Motor datasets)"),
              selectInput("merge_colChoices", label = "Select Columns for Data Table",
-                         choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[1]],motor_choice)))),
+                         choices = unique(c(cdi_basic,motor_basic,unlist(cdi_choice),motor_choice)),
                          multiple = TRUE)
              ),
       
@@ -239,6 +239,7 @@ shinyUI(fluidPage(
     tabPanel('Plot',plotOutput("plot", height = 500, click = "plot1_click"),
              conditionalPanel(
                condition = "input.dataset == 3",
-               verbatimTextOutput("click_info")))
+               verbatimTextOutput("click_info")),
+             plotOutput("plot_corr"))
   )
 ))

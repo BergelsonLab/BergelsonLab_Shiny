@@ -4,6 +4,8 @@ library(tidyverse)
 library(ggplot2)
 library(reshape2)
 library(knitr)
+library(corrplot)
+library(combinat)
 
 shinyServer(function(input, output, session) {
   
@@ -31,8 +33,8 @@ shinyServer(function(input, output, session) {
       
       updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
                         choices = cdi_choice[[x()]])
-      updateSelectInput(session,"cdi_plot_y",label = "Variable you want to view",
-                        choices = c("",cdi_choice[[x()]]), selected = "")
+      updateSelectizeInput(session,"cdi_plot_y",label = "Variable(s) you want to view (up to 3 items)",
+                        choices = cdi_choice[[x()]])
 
       # display selected data
       select_cdi <- reactive({
@@ -68,20 +70,41 @@ shinyServer(function(input, output, session) {
       ## plot
 
       output$plot <- renderPlot(
-        if(input$cdi_plot_x != "" & input$cdi_plot_y !=""){
+        if(length(input$cdi_plot_y)>0 & input$cdi_plot_x !=""){
           df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
-          plot1 <- ggplot(df1,na.rm = FALSE)+
-            ggtitle(paste("The Distribution of",input$cdi_plot_y))+
+          
+          ## correlation plot
+          output$plot_corr <- renderPlot(
+            if(dim(df1)[2]==3){
+              mosaicplot(df1[,2]~df1[,3],main="",xlab=names(df1)[2],ylab=names(df1)[3],cex.axis = 1.5)
+            }else if(dim(df1)[2]>3){
+              combination <- combn(2:dim(df1)[2],2)
+              par(mfrow=c(1,dim(combination)[2]))
+              for (i in 1:dim(combination)[2]){
+                cb_x <- combination[1,i]
+                cb_y <- combination[2,i]
+                mosaicplot(df1[,cb_x]~df1[,cb_y],main = "",xlab="",ylab="",cex.axis = 1.5)
+                title(xlab=names(df1)[cb_x], ylab=names(df1)[cb_y], cex.lab=1.5)
+              }
+            }
+          ) # end of plot_corr
+
+          colnames(df1)[1] <- "x_axis"
+          df1_long <- gather(df1,key = survey_question,value =  ans,- x_axis)
+          
+          plot1 <- ggplot(df1_long,na.rm = FALSE)+
+            ggtitle("Distribution Plot")+
             xlab(input$cdi_plot_x)+
-            labs(fill=input$cdi_plot_y) +
+            labs(fill= "Answers") +
             theme(plot.title = element_text(hjust = 0.5),
                   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                  panel.background = element_blank(), axis.line = element_line(colour = "black"))
+                  panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+            facet_grid(. ~ survey_question)
           
           if (y()==1){
-            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),width=0.9)
+            plot1 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),width=0.9)
            }else{
-            plot1 + geom_bar(aes(x = df1[,1],fill=as.factor(df1[,2])),position = "fill",width=0.9)+ ylab("percentage")
+            plot1 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),position = "fill",width=0.9)+ ylab("percentage")
            }
           }
       ) # end of rederPlot
@@ -131,20 +154,42 @@ shinyServer(function(input, output, session) {
       
       ## plot
       output$plot <- renderPlot(
-        if(input$motor_plot_x != "" & input$motor_plot_y !=""){
+        if(input$motor_plot_x != "" & length(input$motor_plot_y)>0){
           df2 <- df_motor[c(input$motor_plot_x,input$motor_plot_y)]
-          plot2 <- ggplot(df2,na.rm = FALSE)+
-            ggtitle(paste("The Distribution of",input$motor_plot_y))+
+          
+          ## correlation plot
+          output$plot_corr <- renderPlot(
+            if(dim(df2)[2]==3){
+              mosaicplot(df2[,2]~df2[,3],main="",xlab=names(df2)[2],ylab=names(df2)[3],cex.axis = 1.5)
+            }else if(dim(df2)[2]>3){
+              combination <- combn(2:dim(df2)[2],2)
+              par(mfrow=c(1,dim(combination)[2]))
+              for (i in 1:dim(combination)[2]){
+                cb_x <- combination[1,i]
+                cb_y <- combination[2,i]
+                mosaicplot(df2[,cb_x]~df2[,cb_y],main = "",xlab="",ylab="",cex.axis = 1.5)
+                title(xlab=names(df2)[cb_x], ylab=names(df2)[cb_y], cex.lab=1.5)
+              }
+            }
+          ) # end of plot_corr
+          
+          
+          colnames(df2)[1] <- "x_axis"
+          df2_long <- gather(df2,key = survey_question,value =  ans,- x_axis)
+          
+          plot2 <- ggplot(df2_long,na.rm = FALSE)+
+            ggtitle("Distribution Plot")+
             xlab(input$motor_plot_x)+
-            labs(fill=input$motor_plot_y) +
+            labs(fill= "Answers") +
             theme(plot.title = element_text(hjust = 0.5),
                   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                  panel.background = element_blank(), axis.line = element_line(colour = "black"))
+                  panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+            facet_grid(. ~ survey_question)
           
           if (y2()==1){
-            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),width=0.9)
+            plot2 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),width=0.9)
           }else{
-            plot2 + geom_bar(aes(x = df2[,1],fill=as.factor(df2[,2])),position = "fill",width=0.9)+ ylab("percentage")
+            plot2 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),position = "fill",width=0.9)+ ylab("percentage")
           }
         }
       )     # end of rederPlot
@@ -160,16 +205,16 @@ shinyServer(function(input, output, session) {
         })
       
       # which radioButton is chosen
-      x_merge <- reactive({as.numeric(input$radioButton_merge)})
+      x_merge <- reactive({as.numeric(input$checkbox_merge)})
       updateSelectInput(session,"merge_colChoices", label = "Select Columns for Data Table",
-                  choices = unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[x_merge()]],motor_choice)))))
+                  choices = unique(c(cdi_basic,motor_basic,unlist(c(cdi_choice,list(motor_choice))[x_merge()]))))
    
       # display selected data
       select_merge <- reactive({
         df <- df_merge[input$merge_colChoices]
         
         if(dim(df)[2]==0){
-          df_merge[unique(c(cdi_basic,motor_basic,sort(c(cdi_choice[[x_merge()]],motor_choice))))]
+          df_merge[unique(c(cdi_basic,motor_basic,unlist(c(cdi_choice,list(motor_choice))[x_merge()])))]
         }else{
           df 
         }
