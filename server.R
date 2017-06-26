@@ -12,7 +12,6 @@ shinyServer(function(input, output, session) {
   # which set of data is being analyzed
   d <- reactive({input$dataset})
   y <- reactive({as.numeric(input$per_plot)})
-  y2 <- reactive({as.numeric(input$per_plot2)})
 
   
   observe({
@@ -25,23 +24,24 @@ shinyServer(function(input, output, session) {
         filename = "Seedling_Survey_All_CDI_Data.csv",
         content = function(file_out){
           write.csv(df_cdi,file_out, row.names=FALSE)
-        }
-      )
+        })
       
-      # which radioButton is chosen
-      x <- reactive({as.numeric(input$radioButton)})
+      # which cdi_set is chosen
+      x <- reactive({as.numeric(input$cdi_set)})
       
-      updateSelectInput(session,"cdi_colChoices",label = "Select Columns for Data Table: ",
+      updateSelectInput(session,"df_colChoices",label = "Select Columns for Data Table:",
                         choices = cdi_choice[[x()]])
-      updateSelectizeInput(session,"cdi_plot_y",label = "Variable(s) you want to view (up to 3 items)",
+      updateSelectizeInput(session,"df_plot_y",label = "Variable(s) you want to view (up to 3 items)",
                         choices = cdi_choice[[x()]])
+      updateSelectInput(session,"df_plot_x", label = "Color/Category",
+                                            choices = c("",cdi_choice_x), selected = "")
 
       # display selected data
       select_cdi <- reactive({
-        df <- df_cdi[input$cdi_colChoices]
+        df <- df_cdi[cdi_choice[[x()]]]
         
-        if(dim(df)[2]==0){
-          df <- df_cdi[cdi_choice[[x()]]]
+        if(length(input$df_colChoices)>0 & all(input$df_colChoices %in% cdi_choice[[x()]])){
+          df <- df_cdi[input$df_colChoices]
         }
 
         ### for each row, count column answers
@@ -60,8 +60,8 @@ shinyServer(function(input, output, session) {
       })
       
       # download selected data
-      output$download_selected_cdi <- downloadHandler(
-        filename = paste("Seedling Selected",names(radio_cdi)[x()],"Data.csv"),
+      output$download_selected <- downloadHandler(
+        filename = paste("Seedling Selected",names(sets_cdi)[x()],"Data.csv"),
         content = function(file_out){
 
           write.csv(select_cdi(),file_out,row.names=FALSE)
@@ -70,8 +70,8 @@ shinyServer(function(input, output, session) {
       ## plot
 
       output$plot <- renderPlot(
-        if(length(input$cdi_plot_y)>0 & input$cdi_plot_x !=""){
-          df1 <- df_cdi[c(input$cdi_plot_x,input$cdi_plot_y)]
+        if(all(input$df_plot_y %in% cdi_choice[[x()]]) & length(input$df_plot_y)>0 & input$df_plot_x !=""){
+          df1 <- df_cdi[c(input$df_plot_x,input$df_plot_y)]
           
           ## correlation plot
           output$plot_corr <- renderPlot(
@@ -94,7 +94,7 @@ shinyServer(function(input, output, session) {
           
           plot1 <- ggplot(df1_long,na.rm = FALSE)+
             ggtitle("Distribution Plot")+
-            xlab(input$cdi_plot_x)+
+            xlab(input$df_plot_x)+
             labs(fill= "Answers") +
             theme(plot.title = element_text(hjust = 0.5),
                   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -114,6 +114,13 @@ shinyServer(function(input, output, session) {
     # select motor data set
     else if(d()==2) {
       
+      updateSelectInput(session,"df_colChoices",label = "Select Columns for Data Table:",
+                        choices = motor_choice, selected = NULL)
+      updateSelectizeInput(session,"df_plot_y", label = "Variable(s) you want to view (up to 3 items)",
+                           choices = motor_choice)
+      updateSelectInput(session,"df_plot_x", label = "Color/Category",
+                                            choices = c("",motor_choice_x), selected = "")
+      
       # download data set
       output$downloadData <- downloadHandler(
         filename = "Seedling_Survey_All_MOTOR_Data.csv",
@@ -124,9 +131,10 @@ shinyServer(function(input, output, session) {
       
       # display selected data
       select_motor <- reactive({
-        df <- df_motor[input$motor_colChoices]
-        if(dim(df)[2]==0){
-          df <- df_motor[motor_choice]
+        df <- df_motor[motor_choice]
+        
+        if(length(input$df_colChoices)>0 & all(input$df_colChoices %in% motor_choice)){
+          df <- df_motor[input$df_colChoices]
         }
         
         ### for each row, count column answers
@@ -146,7 +154,7 @@ shinyServer(function(input, output, session) {
       })
       
       # download selected data
-      output$download_selected_motor <- downloadHandler(
+      output$download_selected <- downloadHandler(
         filename = "Seedling_Selected_Motor_Data.csv",
         content = function(file_out){
           write.csv(select_motor(),file_out,row.names=FALSE)
@@ -154,8 +162,9 @@ shinyServer(function(input, output, session) {
       
       ## plot
       output$plot <- renderPlot(
-        if(input$motor_plot_x != "" & length(input$motor_plot_y)>0){
-          df2 <- df_motor[c(input$motor_plot_x,input$motor_plot_y)]
+        if(input$df_plot_x != "" & length(input$df_plot_y)>0 & all(input$df_plot_y %in% motor_choice)){
+          
+          df2 <- df_motor[c(input$df_plot_x,input$df_plot_y)]
           
           ## correlation plot
           output$plot_corr <- renderPlot(
@@ -172,21 +181,20 @@ shinyServer(function(input, output, session) {
               }
             }
           ) # end of plot_corr
-          
-          
+
           colnames(df2)[1] <- "x_axis"
           df2_long <- gather(df2,key = survey_question,value =  ans,- x_axis)
           
           plot2 <- ggplot(df2_long,na.rm = FALSE)+
             ggtitle("Distribution Plot")+
-            xlab(input$motor_plot_x)+
+            xlab(input$df_plot_x)+
             labs(fill= "Answers") +
             theme(plot.title = element_text(hjust = 0.5),
                   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))+
             facet_grid(. ~ survey_question)
           
-          if (y2()==1){
+          if (y()==1){
             plot2 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),width=0.9)
           }else{
             plot2 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),position = "fill",width=0.9)+ ylab("percentage")
@@ -204,7 +212,7 @@ shinyServer(function(input, output, session) {
           write.csv(df_merge,file_out,row.names = FALSE)
         })
       
-      # which radioButton is chosen
+      # which checkbox is chosen
       x_merge <- reactive({as.numeric(input$checkbox_merge)})
       updateSelectInput(session,"merge_colChoices", label = "Select Columns for Data Table",
                   choices = unique(c(cdi_basic,motor_basic,unlist(c(cdi_choice,list(motor_choice))[x_merge()]))))
