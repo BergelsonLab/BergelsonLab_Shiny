@@ -7,6 +7,7 @@ library(knitr)
 library(corrplot)
 library(combinat)
 
+
 shinyServer(function(input, output, session) {
   
   # which set of data is being analyzed
@@ -62,9 +63,6 @@ shinyServer(function(input, output, session) {
                         choices = unlist(c(cdi_choice,list(motor_choice))[x_merge()]), selected = NULL)
       updateSelectInput(session,"plot_var", label = "Variable(s) you wish to view in the plot",
                         choices = merge_choice[[plot_section()]]) 
-      
-#########################################3 need to fix "update'!
-      # updateSelectInput(session,"plot_sec", "Question section to view", choices = c(names(sets_cdi), "Motor")[as.numeric(input$merge_set)])
     }
     
     ######################### download full data set #############################
@@ -182,11 +180,19 @@ shinyServer(function(input, output, session) {
       # end of "d()=1|d()=2" for plot
     ### facet plot for merged data
     }else if (d()==3){
+      
       # observe3
       observe({
         output$plot <- renderPlot(
           if(length(input$plot_var)>0 & input$plot_facet_v == "No"){
+
+            ### popup table: plot data
+            output$table_plot <- DT::renderDataTable({
+              DT::datatable(df_all[c(input$plot_facet,input$plot_var)],filter = "top", rownames = FALSE)
+            })
+            
             df_plot <- df_all[c(input$plot_facet,input$plot_var)]
+            
             colnames(df_plot)[1] <- "plot_facet"
             df_plot_long <- gather(df_plot,key = survey_question,value =  ans,- plot_facet)
             df_plot_long$plot_facet <- df_plot_long$plot_facet %>% as.factor()
@@ -204,7 +210,13 @@ shinyServer(function(input, output, session) {
             
             
           }else if (length(input$plot_var)>0 & input$plot_facet_v != "No"){
+            ### popup table: plot data
+            output$table_plot <- DT::renderDataTable({
+              DT::datatable(df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)],filter = "top", rownames = FALSE)
+            })
+            
             df_plot <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
+            
             colnames(df_plot)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
             df_plot_long <- gather(df_plot,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
             

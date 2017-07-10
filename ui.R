@@ -3,6 +3,7 @@
 library(shiny)
 library(dplyr)
 library(stringr)
+library(shinyBS)
 
 ###################################### load data #############################################
 # Read in cdi datafile to work with as df_cdi
@@ -23,8 +24,10 @@ df_cdi <- df_cdi %>% filter(grepl("[a-z]",SubjectNumber,ignore.case = TRUE)==FAL
 df_cdi$Subj <- str_match(df_cdi$SubjectNumber,"(^\\d+)_")[,2]
 colnames(df_cdi)[which(names(df_cdi) == "AgeMonthCDI_Corrected")] <- "AgeMonth_Corrected"
 
-###### For missing obs, if answering "yes" earlier, the missing cell will be "yes"
-###### For missing obs, if answering "no" later, the missing cell will be "no"
+###### for child gender, change all "Female" to "F", 'Male" to "M"
+##### Shiny Table doesn't distinguish capital letters. Cannot filter "male" obs (Fe'male' also contain male)
+df_cdi$Child_gender[which(df_cdi$Child_gender=="Female")] <- "F"
+df_cdi$Child_gender[which(df_cdi$Child_gender=="Male")] <- "M"
 
 ###### convert txt level to number
 df_cdi[df_cdi=='Yes'] <- 1                       # Convert 'Yes' values to = 1
@@ -190,17 +193,23 @@ shinyUI(fluidPage(
              ### merge dataset plot
              conditionalPanel(
                condition = "input.dataset == 3",
-               column(4,selectInput("plot_sec", "Question section to view", choices = c(sets_cdi,"Motor"=7))),
+               column(4,selectInput("plot_sec", "Question section to view", choices = c(sets_cdi,"Motor"=7)),
+                      actionButton("show_data", "View Plot Data")),
                column(4,selectInput("plot_var", label = "Variable(s) you wish to view in the plot",
                                     choices = merge_choice[[1]],
                                     multiple = TRUE)),
                column(4,selectInput("plot_facet", "Variable for faceting (horizontal)", choices = unlist(merge_choice)),
                       selectInput("plot_facet_v", "Variable for faceting (vertical)", choices = c("No","Child_gender"))
-               )
+               ),
+
+               ### popup: plot data
+               bsModal("plot_data", "Data used for plot", "show_data", size = "large",
+                       div(style = 'overflow-x: scroll',DT::dataTableOutput("table_plot")))
              ),
-             
+
              column(12, plotOutput("plot")),
              
+             ### mosaic plot for dataset 1&2
              conditionalPanel(
                condition = "input.dataset == 1||input.dataset == 2",
                column(6,strong("Quantity Comparison"),
