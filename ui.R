@@ -49,6 +49,20 @@ df_gender <- df_gender %>%
   select(Subj,Child_gender) %>% 
   unique()
 
+###### factor level
+
+# First Signs of Understanding
+cdi_level_1 <- list("0" = "no", "1" = "yes", "2"="2", "3"="3", "4"="4","5"="5")
+# Phrases Understood
+cdi_level_2 <- list("0" = "no","1" = "yes", "2"="2","3"="3","4"="4","5"="5")
+# Starting to Produce
+cdi_level_3 <- list("0" = "Never", "1" = "Sometimes", "2" = "Often","3"="3","4"="4","5"="5")
+# Vocab Checklist
+cdi_level_4 <- list("0" = "Doesn't Understand", "1" = "Understands", "2" = 'Understands and says', "3"="3","4"="4","5"="5")
+# Gestures_ASN
+cdi_level_5 <- list("0" = "Not Yet", "1" = "Sometimes","2" = "Often","3"="3","4"="4","5"="5")
+# Games and Routines
+cdi_level_6 <- list("0" = "no", "1" = "yes", "2"="2", "3"="3","4"="4","5"="5")
 
 ####################################### clean df_motor
 
@@ -71,6 +85,15 @@ df_motor$ResponseID <- NULL
 
 ###### missing data: drop "text" variables
 df_motor <- df_motor %>% select(-crawling_belly_TEXT, -crawling_hands_knees_TEXT,-cruising_TEXT,-walking_TEXT)
+
+###### factor levels
+motor_level <- list("0"="0",
+                    "1"="Sure that child does NOT show behavior",
+                    "2"="Child probably does NOT show behavior yet",
+                    "3"="Unsure whether child could do this or not",
+                    "4"="Child probably shows this behavior",
+                    "5"="Sure that child shows this behavior and remember a paricular instance")
+
 
 ################################ merge cdi dataset and motor dateset
 
@@ -123,6 +146,10 @@ motor_basic <- c("SubjectNumber", "AgeMonth_Corrected","AgeDaysMotor",
 motor_choice_x <- c("Child_gender","AgeMonth_Corrected")
 
 merge_choice = c(cdi_choice,list(motor_choice))
+names(merge_choice) <- c(names(sets_cdi),"Motor")
+
+###### levels
+all_level <- list(cdi_level_1,cdi_level_2,cdi_level_3,cdi_level_4,cdi_level_5,cdi_level_6,motor_level)
 
 ######################### UI
 
@@ -134,6 +161,12 @@ shinyUI(fluidPage(
   ##################### TRY: new layout
   
   fluidRow(
+    # select tag font size
+    tags$style(type='text/css', ".selectize-input { font-size: 15px; line-height: 15px;} .selectize-dropdown { font-size: 15px; line-height: 15px; }"),
+    
+    
+    
+    
     #column1
     column(3,
            selectInput("dataset", "Choose Dataset", choices = list("CDI" = 1, 
@@ -198,7 +231,7 @@ shinyUI(fluidPage(
                column(4,selectInput("plot_var", label = "Variable(s) you wish to view in the plot",
                                     choices = merge_choice[[1]],
                                     multiple = TRUE)),
-               column(4,selectInput("plot_facet", "Variable for faceting (horizontal)", choices = unlist(merge_choice)),
+               column(4,selectInput("plot_facet", "Variable for faceting (horizontal)", choices = merge_choice),
                       selectInput("plot_facet_v", "Variable for faceting (vertical)", choices = c("No","Child_gender"))
                ),
 
@@ -213,8 +246,19 @@ shinyUI(fluidPage(
              conditionalPanel(
                condition = "input.dataset == 1||input.dataset == 2",
                column(6,strong("Quantity Comparison"),
-                      selectInput("mosaic_choice", "Filter", choices = c("all"), selected = "all")),
-               plotOutput("plot_corr",height = 300))
+                      selectInput("mosaic_choice", "Filter", choices = c("all"), selected = "all"))),
+             
+             ### collapsed plot for merged data
+             conditionalPanel(
+               condition = "input.dataset ==3",
+               column(4,selectInput("collapse_or_not","Show Collapsed Plot", choices = c("Yes","No"), selected = "No"))
+             ),
+             conditionalPanel(
+               condition = "input.dataset ==3 & input.collapse_or_not=='Yes'",
+               column(6,sliderInput("collapse_range",label = tags$h5("Collapsed Range (horizontal faceting variable)"),value=c(0,1),min=0,max =1,step = 1))
+             ),
+             
+             plotOutput("plot2",height = 300)
     )# end of tabPanel"Plot"
   ) # end of tabsetPanel
 ))
