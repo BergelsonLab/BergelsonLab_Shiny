@@ -88,11 +88,11 @@ df_motor <- df_motor %>% select(-crawling_belly_TEXT, -crawling_hands_knees_TEXT
 
 ###### factor levels
 motor_level <- list("0"="0",
-                    "1"="Sure that child does NOT show behavior",
-                    "2"="Child probably does NOT show behavior yet",
-                    "3"="Unsure whether child could do this or not",
-                    "4"="Child probably shows this behavior",
-                    "5"="Sure that child shows this behavior and remember a paricular instance")
+                    "1"="Doesn't show",
+                    "2"="Probably doesn't show",
+                    "3"="Unsure",
+                    "4"="Probably shows",
+                    "5"="Shows")
 
 
 ################################ merge cdi dataset and motor dateset
@@ -255,7 +255,8 @@ shinyUI(fluidPage(
              ),
              conditionalPanel(
                condition = "input.dataset ==3 & input.collapse_or_not=='Yes'",
-               column(6,sliderInput("collapse_range",label = tags$h5("Collapsed Range (horizontal faceting variable)"),value=c(0,1),min=0,max =1,step = 1))
+               column(4,sliderInput("collapse_range",label = tags$h5("Collapsed Range (horizontal faceting variable)"),value=c(0,1),min=0,max =1,step = 1)),
+               column(4,htmlOutput("legend_collapse"))
              ),
              
              plotOutput("plot2",height = 300)

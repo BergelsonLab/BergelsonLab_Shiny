@@ -276,6 +276,13 @@ shinyServer(function(input, output, session) {
                   filter(plot_facet >= input$collapse_range[1] & plot_facet <= input$collapse_range[2])
               })
               
+              #################### filter legend
+              output$legend_collapse <- renderText({
+                plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
+                paste("<b>",names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br>") 
+              })
+              
               ggplot(df_filter(),na.rm = FALSE)+
                 geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
                 ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
@@ -300,6 +307,13 @@ shinyServer(function(input, output, session) {
                 levels(df_plot3$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot3$plot_facet_v))
                 
                 df_plot3
+              })
+              
+              #################### filter legend
+              output$legend_collapse <- renderText({
+                plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
+                paste("<b>",names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br>") 
               })
               
               ggplot(df_filter(),na.rm = FALSE)+
