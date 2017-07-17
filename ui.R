@@ -245,8 +245,9 @@ shinyUI(fluidPage(
              ### mosaic plot for dataset 1&2
              conditionalPanel(
                condition = "input.dataset == 1||input.dataset == 2",
-               column(6,strong("Quantity Comparison"),
-                      selectInput("mosaic_choice", "Filter", choices = c("all"), selected = "all"))),
+               column(12,strong("Quantity Comparison")),
+               column(4,selectInput("mosaic_choice", "Filter", choices = c("all"), selected = "all")),
+               column(4,htmlOutput("legend_mosaic"))),
              
              ### collapsed plot for merged data
              conditionalPanel(

@@ -125,6 +125,12 @@ shinyServer(function(input, output, session) {
               df1_mosaic <- df1 %>% filter(x_axis == input$mosaic_choice)
             }
             
+            #################### mosaic legend
+            output$legend_mosaic <- renderText({
+              filter_ind <- which(names(plot_level) %in% unlist(df1_mosaic[,-1]))
+              paste(names(unlist(plot_level[filter_ind])),"=",unlist(plot_level[filter_ind]),"<br/>") 
+            })
+            
             ## correlation plot
             output$plot2 <- renderPlot(
               if(dim(df1_mosaic)[2]==3){
@@ -158,6 +164,10 @@ shinyServer(function(input, output, session) {
             
             df1_long <- gather(df1,key = survey_question,value =  ans,- x_axis)
             
+            ### update factor levels
+            df1_long$ans <- factor(df1_long$ans , levels = names(plot_level), labels = unlist(plot_level))
+            
+            ### plot
             plot1 <- ggplot(df1_long,na.rm = FALSE)+
               ggtitle("Distribution Plot")+
               xlab(input$df_plot_x)+
@@ -168,9 +178,9 @@ shinyServer(function(input, output, session) {
               facet_grid(. ~ survey_question)
 
             if (y()==1){
-              plot1 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),width=0.9)
+              plot1 + geom_bar(aes(x = x_axis,fill=ans),width=0.9)
             }else{
-              plot1 + geom_bar(aes(x = x_axis,fill=as.factor(ans)),position = "fill",width=0.9)+ ylab("percentage")
+              plot1 + geom_bar(aes(x = x_axis,fill=ans),position = "fill",width=0.9)+ ylab("percentage")
             }
           }else{
             output$plot2 <- renderPlot(
@@ -280,7 +290,7 @@ shinyServer(function(input, output, session) {
               output$legend_collapse <- renderText({
                 plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
                 filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
-                paste("<b>",names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br>") 
+                paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
               })
               
               ggplot(df_filter(),na.rm = FALSE)+
@@ -313,7 +323,7 @@ shinyServer(function(input, output, session) {
               output$legend_collapse <- renderText({
                 plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
                 filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
-                paste("<b>",names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br>") 
+                paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
               })
               
               ggplot(df_filter(),na.rm = FALSE)+
