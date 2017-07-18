@@ -63,7 +63,7 @@ shinyServer(function(input, output, session) {
       
       ### update
       updateSelectInput(session,"df_colChoices",label = "Select Columns for Data Table:",
-                        choices = unlist(c(cdi_choice,list(motor_choice))[x_merge()]), selected = NULL)
+                        choices = merge_choice[x_merge()], selected = NULL)
       updateSelectInput(session,"plot_var", label = "Variable(s) you wish to view in the plot",
                         choices = merge_choice[[plot_section()]]) 
     }
@@ -86,34 +86,31 @@ shinyServer(function(input, output, session) {
       df_res <- df
       ### for each row, count column answers (no count for merger data)
       if (d()!=3){
-        top_level <- df %>% unlist() %>% na.omit() %>% max()
-        for (i in 0:top_level){
+        top_level <- df %>% unlist() %>% na.omit() %>% range()
+        for (i in top_level[1]:top_level[2]){
           df_count <- rowSums(df== i ) %>% as.data.frame()
           names(df_count) <- paste0("count_",i)
           df_res <- cbind(df_res,df_count)
         }
       }
-      
       cbind(df_all[basic],df_res)
     }) # end of df_select
     
     output$table <- DT::renderDataTable({
       DT::datatable(df_select(),filter = "top", rownames = FALSE)
     })
-
     ############################ download selected & filtered data 
     output$download_selected <- downloadHandler(
       filename = paste("Seedling Selected & Filtered",set_name,"Data.csv"),
       content = function(file_out){
         write.csv(df_select()[input$table_rows_all,],file_out,row.names=FALSE)
       })
-    
     ########################### plot
     ### distribution plot for cdi & mtor
     if (d()==1|d()==2){
       # observe2
       observe({
-        updateSelectInput(session,"mosaic_choice", "Filter", choices = c("all", unique(df_all[[input$df_plot_x]])), selected = "all")
+        updateSelectInput(session,"mosaic_choice", "Filter the Color/Category variable", choices = c("all", unique(df_all[[input$df_plot_x]])), selected = "all")
         output$plot <- renderPlot(
           if(all(input$df_plot_y %in% names(df_section)) & length(input$df_plot_y)>0){
             df1 <- df_all[c(input$df_plot_x,input$df_plot_y)]
@@ -190,8 +187,7 @@ shinyServer(function(input, output, session) {
         ) # end of renderPlot
       }) # end of observe2: mosaic plot
       
-      # end of "d()=1|d()=2" for plot
-    ### facet plot for merged data
+    # end of "d()=1|d()=2" for plot
     }else if (d()==3){
       f_range <- reactive({
         f_value <- unlist(df_merge[input$plot_facet])
@@ -208,6 +204,14 @@ shinyServer(function(input, output, session) {
             output$table_plot <- DT::renderDataTable({
               DT::datatable(df_all[c(input$plot_facet,input$plot_var)],filter = "top", rownames = FALSE)
             })
+            
+            ### download plot data 
+            output$download_popup <- downloadHandler(
+              filename = paste("Seedling Plot Data.csv"),
+              content = function(file_out){
+                write.csv(df_all[c(input$plot_facet,input$plot_var)],file_out,row.names=FALSE)
+              })
+            
             
             df_plot <- df_all[c(input$plot_facet,input$plot_var)]
             colnames(df_plot)[1] <- "plot_facet"
@@ -265,13 +269,23 @@ shinyServer(function(input, output, session) {
               facet_grid(plot_facet_v ~ plot_facet_h)) # end of "output$plot"
             # end of 'if (length(input$plot_var)>0)'
           }else{
+            ### popup table: plot data
+            output$table_plot <- DT::renderDataTable({
+              return(NULL)
+            })
+            
+            ### download plot data 
+            output$download_popup <- downloadHandler(
+              filename = paste("Seedling Plot Data.csv"),
+              content = function(file_out){
+                NULL
+              })
+            
             output$plot <- renderPlot(
               return(NULL)
             )
           } 
-        
-        
-        
+
         ### collapsed plot
           output$plot2 <- renderPlot(
             
@@ -301,6 +315,7 @@ shinyServer(function(input, output, session) {
                       panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                       panel.background = element_blank(), axis.line = element_line(colour = "black"),
                       axis.text.x = element_text(angle = 30, hjust = 1))
+            
             # end of "(length(input$plot_var)>0 & input$plot_facet_v == "No" & input$collapse_or_not == "Yes")"
             }else if(length(input$plot_var)>0 & input$plot_facet_v != "No" & input$collapse_or_not == "Yes"){
               
@@ -335,20 +350,9 @@ shinyServer(function(input, output, session) {
                       panel.background = element_blank(), axis.line = element_line(colour = "black"),
                       axis.text.x = element_text(angle = 30, hjust = 1))+
                 facet_grid(plot_facet_v ~.)
-              
             }
           ) # end of "output$plot2"
-
-        
-        
       }) # observe3: facet plot
-      
     } # end of "d()==3" for plot
-
-    
-    
   }) # end of observe1: which dataset is chosen
-  
-
-  
 }) # end of shinyServer
