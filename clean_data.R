@@ -1,26 +1,23 @@
 library(dplyr)
 library(stringr)
 
-###################################### load data #############################################
+###################################### load csv data #############################################
 # Read in cdi datafile to work with as df_cdi
-df_cdi <- read.csv("C:/Users/Liwen/Dropbox/Duke/RA/BergelsonLab/cdi_spreadsheet/cdi.csv", stringsAsFactors = FALSE)
-
+df_cdi <- read.csv("./data/cdi.csv", stringsAsFactors = FALSE)
 # Read in motor datafile to work with as df_motor
-df_motor <- read.csv("B:/Seedlings/Subject_Info_and_Paperwork/CDI & Motor/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
+df_motor <- read.csv("./data/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
 
 ###################################### clean data ############################################
 
 ###################################### clean df_cdi
-###### check missing
 df_cdi[df_cdi==""] <- NA
 df_cdi <- df_cdi[!is.na(df_cdi$ResponseID),]       # drop obs with missing ResponseID
-###### filter dataa
 df_cdi <- df_cdi %>% filter(grepl("[a-z]",SubjectNumber,ignore.case = TRUE)==FALSE)
 df_cdi$Subj <- str_match(df_cdi$SubjectNumber,"(^\\d+)_")[,2]
 colnames(df_cdi)[which(names(df_cdi) == "AgeMonthCDI_Corrected")] <- "AgeMonth_Corrected"
 
 ###### for child gender, change all "Female" to "F", 'Male" to "M"
-##### Shiny Table doesn't distinguish capital letters. Cannot filter "male" obs (Fe'male' also contain male)
+##### Shiny DataTable doesn't distinguish capital letters. Cannot filter "male" obs (Fe'male' also contain male)
 df_cdi$Child_gender[which(df_cdi$Child_gender=="Female")] <- "F"
 df_cdi$Child_gender[which(df_cdi$Child_gender=="Male")] <- "M"
 
@@ -35,7 +32,7 @@ df_cdi[df_cdi=='Not Yet'] <- 0                   # Convert 'Not Yet' to = 0
 ###### drop "ResponseID
 df_cdi$ResponseID <- NULL
 
-###### gender information from cdi
+###### cdi gender information
 df_gender <- df_cdi %>% select(SubjectNumber,Child_gender)
 df_gender$Subj <- str_match(df_gender$SubjectNumber,"(.+)_")[,2] %>% str_pad(2,side = "left",pad = 0)
 df_gender <- df_gender %>% 
@@ -43,18 +40,14 @@ df_gender <- df_gender %>%
   unique()
 
 ####################################### clean df_motor
-
-###### check missing
 df_motor <- df_motor[!is.na(df_motor$ResponseID),]     # drop obs with missing ResponseID
-
-###### filter dataa
 df_motor <- df_motor %>% filter(grepl("[a-z]",Subj,ignore.case = TRUE)==FALSE)
 
 ###### add gender information
 df_motor$Subj <- df_motor$Subj %>% str_pad(2,side = "left",pad = 0)
 df_motor <- merge(df_motor,df_gender, key="Subj",all.x = TRUE)
 
-###### consistent name
+###### consistent colname
 colnames(df_motor)[which(names(df_motor) %in% "Subject.Number_Month")] <- "SubjectNumber"
 colnames(df_motor)[which(names(df_motor) == "AgeMonthMotor_Corrected")] <- "AgeMonth_Corrected"
 
@@ -73,7 +66,7 @@ colnames(df_motor)[which(names(df_motor) %in% col_dup)] <- paste0(col_dup,"_moto
 
 df_merge = merge(df_cdi,df_motor,key=c("Subj","Child_gender","AgeMonth_Corrected"))
 
-###### change type to numeric if possible (note: df_cdi has already dropped missing values)
+###### change type to numeric if applicable
 df_merge_num = suppressWarnings(data.matrix(df_merge)) %>% as.data.frame()
 sum_merge <- sapply(df_merge,function(x) sum(is.na(x)))
 sum_merge_num <- sapply(df_merge_num,function(x) sum(is.na(x)))
@@ -81,5 +74,5 @@ ind_merge_num <- which(sum_merge == sum_merge_num)
 df_merge[,ind_merge_num] <- sapply(df_merge[,ind_merge_num], as.numeric)
 
 ################################# save cleaned data
-save(df_cdi,df_motor,df_merge,file="C:/Users/Liwen/Dropbox/Duke/RA/BergelsonLab/Shiny/BergelsonLab_Shiny/data.Rda")
+save(df_cdi,df_motor,df_merge,file="./data.Rda")
 rm(list = ls())
