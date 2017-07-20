@@ -9,27 +9,27 @@ library(combinat)
 
 shinyServer(function(input, output, session) {
   
-  # which dataset is selected
+  # reactive expressions
+  ### which dataset is selected
   d <- reactive({input$dataset})
-  # count plot or percentage plot
+  ### count plot or percentage plot
   y <- reactive({as.numeric(input$per_plot)})
+  ### the selected CDI section if CDI dataset is selected
+  x <- reactive({as.numeric(input$cdi_set)})
+  ### the selected data section(s) for DataTable if Merged dataset is selected
+  x_merge <- reactive({as.numeric(input$merge_set)})
+  ### the selected data section for facet plot if Merged dataset is selected
+  plot_section <- reactive({as.numeric(input$plot_sec)})
   
-  # observe1
+  # observe1 -- active reactive context for reactive expressions: d(),x(),x_merge(),plot_section()
   observe({
     
-    # the selected CDI section if CDI dataset is selected
-    x <- reactive({as.numeric(input$cdi_set)})
-    # the selected data section(s) for DataTable if Merged dataset is selected
-    x_merge <- reactive({as.numeric(input$merge_set)})
-    # the selected data section for facet plot if Merged dataset is selected
-    plot_section <- reactive({as.numeric(input$plot_sec)})
-    
     ############# cdi
-    if(d()==1){
+    if(d()==1){                                         # d(): update whenever the selected dataset changes
       df_all <- df_cdi                                  # full cdi dataset
       set_name <- "CDI"
       basic <- cdi_basic                                
-      df_section <- df_cdi[cdi_choice[[x()]]]           # dataframe for selected cdi section
+      df_section <- df_cdi[cdi_choice[[x()]]]           # x(): update whenever the selected CDI section changes
       plot_level <- all_level[[x()]]                    # labels for sected section factors 
 
       ### update widgets to CDI mode 
@@ -41,7 +41,7 @@ shinyServer(function(input, output, session) {
                         choices = dist_x)
       
     ############# motor
-    }else if (d()==2){
+    }else if (d()==2){                                  # d(): update whenever the selected dataset changes
       ### update widgets to Motor mode
       df_all <- df_motor                                # full motor dataset
       set_name <- "Motor"
@@ -57,12 +57,12 @@ shinyServer(function(input, output, session) {
                         choices = dist_x)
     
     ############# merged data    
-    }else if (d()==3){
+    }else if (d()==3){                                   # d(): update whenever the selected dataset changes
       df_all <- df_merge                                 # full merged dataset
       set_name <- "Merged"
       basic <- c(cdi_basic,motor_basic) %>% unique()
-      df_section <- df_merge[unlist(merge_choice[x_merge()])] # dataframe for selected merged data section(s)
-      plot_level <- all_level[[plot_section()]]          # labels for sected section factors
+      df_section <- df_merge[unlist(merge_choice[x_merge()])] # x_merge(): update whenever the selected table data section(s) changes
+      plot_level <- all_level[[plot_section()]]          # plot_section(): update whenever the selected plot data section changes
       
       ### update widgets to Merged data mode
       updateSelectInput(session,"df_colChoices",label = "Select Columns for Data Table:",
@@ -82,6 +82,7 @@ shinyServer(function(input, output, session) {
     # if no variables are selected, render the dataframe of basic child info variables and selected section(s);
     # if some variables are selected, render the dataframe of basic child info variables and selected variables
     # for CDI & Motor datsets, count the factor levels for each obs
+    ### reactive expressions: update whenever input$df_colChoices changes
     df_select <- reactive({
       df <- df_section
       if(length(input$df_colChoices)>0 & all(input$df_colChoices %in% names(df_section))){
@@ -90,7 +91,7 @@ shinyServer(function(input, output, session) {
       df_res <- df
       
       ### for each row, count factor levels (no count for merger data)
-      if (d()!=3){
+      if (d()!=3){                                                # d(): update whenever the selected dataset changes
         top_level <- df %>% unlist() %>% na.omit() %>% range()
         for (i in top_level[1]:top_level[2]){
           df_count <- rowSums(df== i ) %>% as.data.frame()
@@ -103,6 +104,7 @@ shinyServer(function(input, output, session) {
       cbind(df_all[basic],df_res)
     }) # end of df_select
     
+    ###  server-side version of DataTables: return reactive expressions "df_select()"
     output$table <- DT::renderDataTable({
       DT::datatable(df_select(),filter = "top", rownames = FALSE)
     })
@@ -114,120 +116,125 @@ shinyServer(function(input, output, session) {
         write.csv(df_select()[input$table_rows_all,],file_out,row.names=FALSE)
       })
     ########################### plot
-    ### distribution plot for cdi & mtor
-    if (d()==1|d()==2){
-      # observe2
+    # distribution plot for cdi & mtor
+    if (d()==1|d()==2){                                  # d(): update whenever the selected dataset changes
+      # observe2 -- observer for updating input "mosaic_choice"
       observe({
-        
         ### update the mosaic plot filter choices according to the selected "X-axis" variable
         updateSelectInput(session,"mosaic_choice", "Filter by the X-axis Variable", choices = c("all", unique(df_all[[input$df_plot_x]])), selected = "all")
-        
-        output$plot <- renderPlot(
-          if(all(input$df_plot_y %in% names(df_section)) & length(input$df_plot_y)>0){
-            df1 <- df_all[c(input$df_plot_x,input$df_plot_y)]
-            colnames(df1)[1] <- "x_axis"
-            
-            # filter plot data according to input "mosaic_choice"
-            if (input$mosaic_choice == "all"){
-              df1_mosaic <- df1
-            }else{
-              df1_mosaic <- df1 %>% filter(x_axis == input$mosaic_choice)
-            }
-            
-            #################### mosaic legend (what each number stands for)
-            output$legend_mosaic <- renderText({
-              filter_ind <- which(names(plot_level) %in% unlist(df1_mosaic[,-1]))
-              paste(names(unlist(plot_level[filter_ind])),"=",unlist(plot_level[filter_ind]),"<br/>") 
-            })
-            
-            # mosaic plot
-            output$plot2 <- renderPlot(
-              if(dim(df1_mosaic)[2]==3){
-                if (length(unique(df1_mosaic[,2]))>1 |length(unique(df1_mosaic[,3]))>1){
-                  mosaicplot(df1_mosaic[,2]~df1_mosaic[,3],main="",xlab=names(df1_mosaic)[2],ylab=names(df1_mosaic)[3],cex.axis = 1.5)
+      })
+      
+      ### distribution plot
+      output$plot <- renderPlot(
+        if(all(input$df_plot_y %in% names(df_section)) & length(input$df_plot_y)>0){
+          df1 <- df_all[c(input$df_plot_x,input$df_plot_y)]
+          colnames(df1)[1] <- "x_axis"
+          
+          # filter plot data according to input "mosaic_choice"
+          if (input$mosaic_choice == "all"){
+            df1_mosaic <- df1
+          }else{
+            df1_mosaic <- df1 %>% filter(x_axis == input$mosaic_choice)
+          }
+          
+          ### mosaic legend (what each number stands for)
+          output$legend_mosaic <- renderText({
+            filter_ind <- which(names(plot_level) %in% unlist(df1_mosaic[,-1]))
+            paste(names(unlist(plot_level[filter_ind])),"=",unlist(plot_level[filter_ind]),"<br/>") 
+          })
+          
+          ### mosaic plot
+          output$plot2 <- renderPlot(
+            ### if compare two variables
+            if(dim(df1_mosaic)[2]==3){
+              if (length(unique(df1_mosaic[,2]))>1 |length(unique(df1_mosaic[,3]))>1){
+                mosaicplot(df1_mosaic[,2]~df1_mosaic[,3],main="",xlab=names(df1_mosaic)[2],ylab=names(df1_mosaic)[3],cex.axis = 1.5)
+              }else{
+                # if both variables are constant, plot a rectangular
+                plot(1:10,1:10,type = "n",xaxt='n',yaxt='n',xlab = "",ylab = "")
+                text(5,3,paste(names(df1_mosaic)[2],"are all",unique(df1_mosaic[,2])),cex=1.5)
+                text(5,8,paste(names(df1_mosaic)[3],"are all",unique(df1_mosaic[,3])),cex=1.5)
+                title(xlab=names(df1)[2], ylab=names(df1)[3], cex.lab=1.5)
+              }
+            ### if compare more than two variables (in pairs)
+            }else if(dim(df1_mosaic)[2]>3){
+              combination <- combn(2:dim(df1_mosaic)[2],2)
+              par(mfrow=c(1,dim(combination)[2]))
+              for (i in 1:dim(combination)[2]){
+                cb_x <- combination[1,i]
+                cb_y <- combination[2,i]
+                if (length(unique(df1_mosaic[,cb_x]))>1 |length(unique(df1_mosaic[,cb_y]))>1){
+                  mosaicplot(df1_mosaic[,cb_x]~df1_mosaic[,cb_y],main = "",xlab="",ylab="",cex.axis = 1.5)
                 }else{
                   # if both variables are constant, plot a rectangular
                   plot(1:10,1:10,type = "n",xaxt='n',yaxt='n',xlab = "",ylab = "")
-                  text(5,3,paste(names(df1_mosaic)[2],"are all",unique(df1_mosaic[,2])),cex=1.5)
-                  text(5,8,paste(names(df1_mosaic)[3],"are all",unique(df1_mosaic[,3])),cex=1.5)
-                  title(xlab=names(df1)[2], ylab=names(df1)[3], cex.lab=1.5)
+                  text(5,3,paste(names(df1_mosaic)[cb_x],"are all",unique(df1_mosaic[,cb_x])),cex=1.5)
+                  text(5,8,paste(names(df1_mosaic)[cb_y],"are all",unique(df1_mosaic[,cb_y])),cex=1.5)
                 }
-                
-              }else if(dim(df1_mosaic)[2]>3){
-                combination <- combn(2:dim(df1_mosaic)[2],2)
-                par(mfrow=c(1,dim(combination)[2]))
-                for (i in 1:dim(combination)[2]){
-                  cb_x <- combination[1,i]
-                  cb_y <- combination[2,i]
-                  if (length(unique(df1_mosaic[,cb_x]))>1 |length(unique(df1_mosaic[,cb_y]))>1){
-                    mosaicplot(df1_mosaic[,cb_x]~df1_mosaic[,cb_y],main = "",xlab="",ylab="",cex.axis = 1.5)
-                  }else{
-                    # if both variables are constant, plot a rectangular
-                    plot(1:10,1:10,type = "n",xaxt='n',yaxt='n',xlab = "",ylab = "")
-                    text(5,3,paste(names(df1_mosaic)[cb_x],"are all",unique(df1_mosaic[,cb_x])),cex=1.5)
-                    text(5,8,paste(names(df1_mosaic)[cb_y],"are all",unique(df1_mosaic[,cb_y])),cex=1.5)
-                  }
-                  title(xlab=names(df1_mosaic)[cb_x], ylab=names(df1_mosaic)[cb_y], cex.lab=1.5)
-                }
+                title(xlab=names(df1_mosaic)[cb_x], ylab=names(df1_mosaic)[cb_y], cex.lab=1.5)
               }
-            ) # end of plot2
-            
-            # long format dataframe for facet plot
-            df1_long <- gather(df1,key = survey_question,value =  ans,- x_axis)
-            
-            # match factor levels
-            df1_long$ans <- factor(df1_long$ans , levels = names(plot_level), labels = plot_level)
-            
-            ### distribution plot
-            plot1 <- ggplot(df1_long,na.rm = FALSE)+
-              ggtitle("Distribution Plot")+
-              xlab(input$df_plot_x)+
-              labs(fill= "Answers") +
-              theme(plot.title = element_text(hjust = 0.5),
-                    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                    panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-              facet_grid(. ~ survey_question)
-
-            # count plot
-            if (y()==1){
-              plot1 + geom_bar(aes(x = x_axis,fill=ans),width=0.9)
-              
-            # percentage plot
-            }else{
-              plot1 + geom_bar(aes(x = x_axis,fill=ans),position = "fill",width=0.9)+ ylab("percentage")
             }
+          ) # end of plot2
+          
+          # long format dataframe for facet plot
+          df1_long <- gather(df1,key = survey_question,value =  ans,- x_axis)
+          
+          # match factor levels
+          df1_long$ans <- factor(df1_long$ans , levels = names(plot_level), labels = plot_level)
+          
+          ### distribution plot
+          plot1 <- ggplot(df1_long,na.rm = FALSE)+
+            ggtitle("Distribution Plot")+
+            xlab(input$df_plot_x)+
+            labs(fill= "Answers") +
+            theme(plot.title = element_text(hjust = 0.5),
+                  panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+            facet_grid(. ~ survey_question)
+
+          # reactive expression: y()==1 count plot
+          if (y()==1){                                          
+            plot1 + geom_bar(aes(x = x_axis,fill=ans),width=0.9)
+            
+          # percentage plot
           }else{
-            output$plot2 <- renderPlot(
-              return(NULL)
-            )
+            plot1 + geom_bar(aes(x = x_axis,fill=ans),position = "fill",width=0.9)+ ylab("percentage")
           }
-        ) # end of renderPlot
-      }) # end of observe2: mosaic plot
+        }else{
+          output$plot2 <- renderPlot(
+            return(NULL)
+          )
+        }
+      ) # end of renderPlot
       
     # end of "d()=1|d()=2" for plot
-    }else if (d()==3){
+    }else if (d()==3){                                  # d(): update whenever the selected dataset changes
       
-      # the range of input$plot_facet
+      # the range of the variable for horizontal facet plot
+      ### reactive expression: update whenever "input$plot_facet" changes
       f_range <- reactive({
         f_value <- unlist(df_merge[input$plot_facet])
         range(na.omit(as.numeric(as.character(f_value))))
       })
       
-      # allow users to select the range of facet variable used for collapse plot
-      updateSliderInput(session,"collapse_range",value=f_range(),min=f_range()[1],max =f_range()[2],step = 1)
+      # observe3 -- observer for updating input "collapse_range"
+      observe({
+        # allow users to customize the range of facet variable used for collapse plot
+        updateSliderInput(session,"collapse_range",value=f_range(),min=f_range()[1],max =f_range()[2],step = 1)
+      })
       
-      # observe3
+      # observe4 -- active reactive context for updating plot dataframe
       observe({
         
           # horizontal facet plot
           if(length(input$plot_var)>0 & input$plot_facet_v == "No"){
 
-            ### popup: plot data
+            # popup: plot data
             output$table_plot <- DT::renderDataTable({
               DT::datatable(df_all[c(input$plot_facet,input$plot_var)],filter = "top", rownames = FALSE)
             })
             
-            ### download plot data 
+            # download plot data 
             output$download_popup <- downloadHandler(
               filename = paste("Seedling Plot Data.csv"),
               content = function(file_out){
@@ -241,15 +248,15 @@ shinyServer(function(input, output, session) {
             # long format for facet plot
             df_plot_long <- gather(df_plot,key = survey_question,value =  ans,- plot_facet)
             
-            #################### update factor levels 
-            # find which data section input$plot_facet comes from
+            # update factor levels 
+            ### find which data section input$plot_facet comes from
             plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-            # match factor labels for facet variable
+            #### match factor labels for facet variable
             df_plot_long$plot_facet <- factor(df_plot_long$plot_facet, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
-            # match factor labels for selected x-axis variables(s)
+            ### match factor labels for selected x-axis variables(s)
             df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = plot_level)
             
-            ##################### facet plot
+            # facet plot
             output$plot <- renderPlot(
             ggplot(df_plot_long,na.rm = FALSE)+
               geom_bar(aes(x = survey_question,fill=ans),width=0.9)+
@@ -274,14 +281,14 @@ shinyServer(function(input, output, session) {
             # long format dataframe for facet plot
             df_plot_long <- gather(df_plot,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
             
-            ################ update factor levels
-            # find which data section input$plot_facet comes from
+            # update factor levels
+            ### find which data section input$plot_facet comes from
             plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-            # match factor labels for horizontal facet variable
+            ### match factor labels for horizontal facet variable
             df_plot_long$plot_facet_h <- factor(df_plot_long$plot_facet_h, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
-            # match factor labels for selected x-axis variables(s)
+            ### match factor labels for selected x-axis variables(s)
             df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = unlist(plot_level))
-            # match factor labels for vertical facet variable
+            ### match factor labels for vertical facet variable
             df_plot_long$plot_facet_v <- df_plot_long$plot_facet_v %>% as.factor()
             levels(df_plot_long$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot_long$plot_facet_v))
 
@@ -294,32 +301,33 @@ shinyServer(function(input, output, session) {
                     panel.background = element_blank(), axis.line = element_line(colour = "black"),
                     axis.text.x = element_text(angle = 30, hjust = 1))+
               facet_grid(plot_facet_v ~ plot_facet_h)) # end of "output$plot"
-            # end of 'if (length(input$plot_var)>0)'
+          
+          # if incomplete info provided, return nothing
           }else{
-            ### popup table: plot data
+            # popup table: plot data
             output$table_plot <- DT::renderDataTable({
               return(NULL)
             })
             
-            ### download plot data 
+            # download plot data 
             output$download_popup <- downloadHandler(
               filename = paste("Seedling Plot Data.csv"),
               content = function(file_out){
                 NULL
               })
-            
+            # facet plot
             output$plot <- renderPlot(
               return(NULL)
             )
           } 
 
-        ### collapsed plot
+          ### collapsed plot
           output$plot2 <- renderPlot(
             
             # horizontal collapsed facet plot
             if (length(input$plot_var)>0 & input$plot_facet_v == "No" & input$collapse_or_not == "Yes"){
               
-              # filter data according to the collapsed range
+              # reactive expression: refilter data whenever the collapsed range changes
               df_filter <- reactive({
                 df_plot2 <- df_all[c(input$plot_facet,input$plot_var)]
                 colnames(df_plot2)[1] <- "plot_facet"
@@ -332,11 +340,11 @@ shinyServer(function(input, output, session) {
               # print the factor labels for horizontal facet variable
               output$legend_collapse <- renderText({
                 plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
+                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1]) # df_filter(): refilter data whenever the collapsed range changes
                 paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
               })
               
-              ggplot(df_filter(),na.rm = FALSE)+
+              ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
                 geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
                 ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
                 labs(fill= "Answers") +
@@ -348,7 +356,7 @@ shinyServer(function(input, output, session) {
             # horizontal & vertical collapsed facet plot
             }else if(length(input$plot_var)>0 & input$plot_facet_v != "No" & input$collapse_or_not == "Yes"){
               
-              # filter data according to the collapsed range
+              # reactive expression: refilter data whenever the collapsed range changes
               df_filter <- reactive({
                 df_plot2 <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
                 colnames(df_plot2)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
@@ -367,11 +375,11 @@ shinyServer(function(input, output, session) {
               # print the factor labels for horizontal facet variable
               output$legend_collapse <- renderText({
                 plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])
+                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])   # df_filter(): refilter data whenever the collapsed range changes
                 paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
               })
               
-              ggplot(df_filter(),na.rm = FALSE)+
+              ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
                 geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
                 ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
                 labs(fill= "Answers") +
@@ -382,7 +390,7 @@ shinyServer(function(input, output, session) {
                 facet_grid(plot_facet_v ~.)
             }
           ) # end of "output$plot2"
-      }) # observe3: facet plot
+      }) # end of observe4
     } # end of "d()==3" for plot
   }) # end of observe1: which dataset is chosen
 }) # end of shinyServer
