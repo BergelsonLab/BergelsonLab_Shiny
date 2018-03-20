@@ -3,9 +3,9 @@ library(stringr)
 
 ###################################### load csv data #############################################
 # Read in cdi datafile to work with as df_cdi
-df_cdi <- read.csv("./data/cdi.csv", stringsAsFactors = FALSE)
+df_cdi <- read.csv("data/cdi.csv", stringsAsFactors = FALSE)
 # Read in motor datafile to work with as df_motor
-df_motor <- read.csv("./data/final_motor_merged_cleaned.csv",  stringsAsFactors = FALSE)
+df_motor <- read.csv("data/motor.csv",  stringsAsFactors = FALSE)
 
 ###################################### clean data ############################################
 

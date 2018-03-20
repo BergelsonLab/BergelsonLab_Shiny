@@ -7,7 +7,7 @@ library(shinyBS)
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel(h1("Seedling Survey Results")),
+  titlePanel(h1("SEEDLingS CDI & Motor Survey")),
 
   fluidRow(
     # select tag font size
