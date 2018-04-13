@@ -8,7 +8,7 @@ shinyUI(fluidPage(
   
   # Application title
   titlePanel(h1("SEEDLingS CDI & Motor Survey")),
-
+  
   fluidRow(
     # select tag font size
     tags$style(type='text/css', ".selectize-input { font-size: 15px; line-height: 15px;} .selectize-dropdown { font-size: 15px; line-height: 15px; }"),
@@ -41,19 +41,19 @@ shinyUI(fluidPage(
                            choices = c(sets_cdi, "Motor" = 7), multiple = TRUE))) # end of conditionalPanel (dataset3)
   ), # end of fluidRow
   
-#################################################### tab ###########################################  
+  #################################################### tab ###########################################  
   h2("Survey Results", align = "center"),
   tabsetPanel(
     id = 'tab',
-################################################### tab: table ####################################
+    ################################################### tab: table ####################################
     tabPanel('table',
-               column(4,selectInput("df_colChoices", label = "Select Columns for Data Table",
-                                    choices = c("SubjectNumber","Child_gender"),selected = NULL,
-                                    multiple = TRUE)),
-               column(4,helpText("Download the datatable below to a csv file."),
-                      downloadButton("download_selected", "Download Selected & Filtered Data")),
+             column(4,selectInput("df_colChoices", label = "Select Columns for Data Table",
+                                  choices = c("SubjectNumber","Child_gender"),selected = NULL,
+                                  multiple = TRUE)),
+             column(4,helpText("Download the datatable below to a csv file."),
+                    downloadButton("download_selected", "Download Selected & Filtered Data")),
              DT::dataTableOutput("table")),
-#################################################### tab: plot ###################################
+    #################################################### tab: plot ###################################
     tabPanel('Plot',
              ### cdi & motor plot
              conditionalPanel(
@@ -81,14 +81,14 @@ shinyUI(fluidPage(
                column(4,selectInput("plot_facet", "Variable for faceting (horizontal)", choices = merge_choice),
                       selectInput("plot_facet_v", "Variable for faceting (vertical)", choices = c("No","Child_gender"))
                ),
-
+               
                ### popup: table and download button for plot data
                bsModal("plot_data", "Data used for plot", "show_data", size = "large",
                        div(style = 'overflow-x: scroll',
                            DT::dataTableOutput("table_plot"),
                            downloadButton("download_popup", "Download Plot Data")))
              ),
-
+             
              column(12, plotOutput("plot")),
              
              ### mosaic plot for CDI & Motor

@@ -31,7 +31,7 @@ shinyServer(function(input, output, session) {
       basic <- cdi_basic                                
       df_section <- df_cdi[cdi_choice[[x()]]]           # x(): update whenever the selected CDI section changes
       plot_level <- all_level[[x()]]                    # labels for sected section factors 
-
+      
       ### update widgets to CDI mode 
       updateSelectInput(session,"df_colChoices",label = "Select Columns for Data Table:",
                         choices = cdi_choice[[x()]])
@@ -40,7 +40,7 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session,"df_plot_x", label = "X-axis",
                         choices = dist_x)
       
-    ############# motor
+      ############# motor
     }else if (d()==2){                                  # d(): update whenever the selected dataset changes
       ### update widgets to Motor mode
       df_all <- df_motor                                # full motor dataset
@@ -55,8 +55,8 @@ shinyServer(function(input, output, session) {
                            choices = motor_choice)
       updateSelectInput(session,"df_plot_x", label = "X-axis",
                         choices = dist_x)
-    
-    ############# merged data    
+      
+      ############# merged data    
     }else if (d()==3){                                   # d(): update whenever the selected dataset changes
       df_all <- df_merge                                 # full merged dataset
       set_name <- "Merged"
@@ -156,7 +156,7 @@ shinyServer(function(input, output, session) {
                 text(5,8,paste(names(df1_mosaic)[3],"are all",unique(df1_mosaic[,3])),cex=1.5)
                 title(xlab=names(df1)[2], ylab=names(df1)[3], cex.lab=1.5)
               }
-            ### if compare more than two variables (in pairs)
+              ### if compare more than two variables (in pairs)
             }else if(dim(df1_mosaic)[2]>3){
               combination <- combn(2:dim(df1_mosaic)[2],2)
               par(mfrow=c(1,dim(combination)[2]))
@@ -191,12 +191,12 @@ shinyServer(function(input, output, session) {
                   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))+
             facet_grid(. ~ survey_question)
-
+          
           # reactive expression: y()==1 count plot
           if (y()==1){                                          
             plot1 + geom_bar(aes(x = x_axis,fill=ans),width=0.9)
             
-          # percentage plot
+            # percentage plot
           }else{
             plot1 + geom_bar(aes(x = x_axis,fill=ans),position = "fill",width=0.9)+ ylab("percentage")
           }
@@ -207,7 +207,7 @@ shinyServer(function(input, output, session) {
         }
       ) # end of renderPlot
       
-    # end of "d()=1|d()=2" for plot
+      # end of "d()=1|d()=2" for plot
     }else if (d()==3){                                  # d(): update whenever the selected dataset changes
       
       # the range of the variable for horizontal facet plot
@@ -226,38 +226,39 @@ shinyServer(function(input, output, session) {
       # observe4 -- active reactive context for updating plot dataframe
       observe({
         
-          # horizontal facet plot
-          if(length(input$plot_var)>0 & input$plot_facet_v == "No"){
-
-            # popup: plot data
-            output$table_plot <- DT::renderDataTable({
-              DT::datatable(df_all[c(input$plot_facet,input$plot_var)],filter = "top", rownames = FALSE)
+        # horizontal facet plot
+        if(length(input$plot_var)>0 & input$plot_facet_v == "No"){
+          
+          # popup: plot data
+          output$table_plot <- DT::renderDataTable({
+            DT::datatable(df_all[c(input$plot_facet,input$plot_var)],filter = "top", rownames = FALSE)
+          })
+          
+          # download plot data 
+          output$download_popup <- downloadHandler(
+            filename = paste("Seedling Plot Data.csv"),
+            content = function(file_out){
+              write.csv(df_all[c(input$plot_facet,input$plot_var)],file_out,row.names=FALSE)
             })
-            
-            # download plot data 
-            output$download_popup <- downloadHandler(
-              filename = paste("Seedling Plot Data.csv"),
-              content = function(file_out){
-                write.csv(df_all[c(input$plot_facet,input$plot_var)],file_out,row.names=FALSE)
-              })
-            
-            
-            df_plot <- df_all[c(input$plot_facet,input$plot_var)]
-            colnames(df_plot)[1] <- "plot_facet"
-            
-            # long format for facet plot
-            df_plot_long <- gather(df_plot,key = survey_question,value =  ans,- plot_facet)
-            
-            # update factor levels 
-            ### find which data section input$plot_facet comes from
-            plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-            #### match factor labels for facet variable
-            df_plot_long$plot_facet <- factor(df_plot_long$plot_facet, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
-            ### match factor labels for selected x-axis variables(s)
-            df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = plot_level)
-            
-            # facet plot
-            output$plot <- renderPlot(
+          
+          
+          df_plot <- df_all[c(input$plot_facet,input$plot_var)]
+          colnames(df_plot)[1] <- "plot_facet"
+          
+          # long format for facet plot
+          df_plot_long <- gather(df_plot,key = survey_question,value =  ans,- plot_facet)
+          
+          # update factor levels 
+          ### find which data section input$plot_facet comes from
+          #print(grep(sprintf("([^_]+|^)(%s)", input$plot_facet), unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" ")))))
+          plot_level_facet <- all_level[[grep(sprintf("([^_]+|^)(%s)", input$plot_facet), unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+          #### match factor labels for facet variable
+          df_plot_long$plot_facet <- factor(df_plot_long$plot_facet, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
+          ### match factor labels for selected x-axis variables(s)
+          df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = plot_level)
+          
+          # facet plot
+          output$plot <- renderPlot(
             ggplot(df_plot_long,na.rm = FALSE)+
               geom_bar(aes(x = survey_question,fill=ans),width=0.9)+
               ggtitle("Comparison Plot")+
@@ -267,129 +268,129 @@ shinyServer(function(input, output, session) {
                     panel.background = element_blank(), axis.line = element_line(colour = "black"),
                     axis.text.x = element_text(angle = 30, hjust = 1))+
               facet_grid(. ~ plot_facet)) #end of "output$plot"
-            
+          
           # horizontal & vertical facet plot  
-          }else if(length(input$plot_var)>0 & input$plot_facet_v != "No"){
-            ### popup table: plot data
-            output$table_plot <- DT::renderDataTable({
-              DT::datatable(df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)],filter = "top", rownames = FALSE)
+        }else if(length(input$plot_var)>0 & input$plot_facet_v != "No"){
+          ### popup table: plot data
+          output$table_plot <- DT::renderDataTable({
+            DT::datatable(df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)],filter = "top", rownames = FALSE)
+          })
+          
+          df_plot <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
+          colnames(df_plot)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
+          
+          # long format dataframe for facet plot
+          df_plot_long <- gather(df_plot,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
+          
+          # update factor levels
+          ### find which data section input$plot_facet comes from
+          plot_level_facet <- all_level[[grep(sprintf("([^_]+|^)(%s)", input$plot_facet), unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+          ### match factor labels for horizontal facet variable
+          df_plot_long$plot_facet_h <- factor(df_plot_long$plot_facet_h, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
+          ### match factor labels for selected x-axis variables(s)
+          df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = unlist(plot_level))
+          ### match factor labels for vertical facet variable
+          df_plot_long$plot_facet_v <- df_plot_long$plot_facet_v %>% as.factor()
+          levels(df_plot_long$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot_long$plot_facet_v))
+          
+          output$plot <- renderPlot(ggplot(df_plot_long,na.rm = FALSE)+
+                                      geom_bar(aes(x = survey_question,fill= ans),width=0.9)+
+                                      ggtitle("Comparison Plot")+
+                                      labs(fill= "Answers") +
+                                      theme(plot.title = element_text(hjust = 0.5),
+                                            panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                            panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                                            axis.text.x = element_text(angle = 30, hjust = 1))+
+                                      facet_grid(plot_facet_v ~ plot_facet_h)) # end of "output$plot"
+          
+          # if incomplete info provided, return nothing
+        }else{
+          # popup table: plot data
+          output$table_plot <- DT::renderDataTable({
+            return(NULL)
+          })
+          
+          # download plot data 
+          output$download_popup <- downloadHandler(
+            filename = paste("Seedling Plot Data.csv"),
+            content = function(file_out){
+              NULL
+            })
+          # facet plot
+          output$plot <- renderPlot(
+            return(NULL)
+          )
+        } 
+        
+        ### collapsed plot
+        output$plot2 <- renderPlot(
+          
+          # horizontal collapsed facet plot
+          if (length(input$plot_var)>0 & input$plot_facet_v == "No" & input$collapse_or_not == "Yes"){
+            
+            # reactive expression: refilter data whenever the collapsed range changes
+            df_filter <- reactive({
+              df_plot2 <- df_all[c(input$plot_facet,input$plot_var)]
+              colnames(df_plot2)[1] <- "plot_facet"
+              df_plot_long2 <- gather(df_plot2,key = survey_question,value =  ans,- plot_facet)
+              df_plot_long2$plot_facet <- df_plot_long2$plot_facet %>% as.character() %>% as.numeric()
+              df_plot_long2 %>%
+                filter(plot_facet >= input$collapse_range[1] & plot_facet <= input$collapse_range[2])
             })
             
-            df_plot <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
-            colnames(df_plot)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
+            # print the factor labels for horizontal facet variable
+            output$legend_collapse <- renderText({
+              plot_level_facet <- all_level[[grep(sprintf("([^_]+|^)(%s)", input$plot_facet), unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+              filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1]) # df_filter(): refilter data whenever the collapsed range changes
+              paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
+            })
             
-            # long format dataframe for facet plot
-            df_plot_long <- gather(df_plot,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
+            ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
+              geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
+              ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
+              labs(fill= "Answers") +
+              theme(plot.title = element_text(hjust = 0.5),
+                    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                    panel.background = element_blank(), axis.line = element_line(colour = "black"),
+                    axis.text.x = element_text(angle = 30, hjust = 1))
             
-            # update factor levels
-            ### find which data section input$plot_facet comes from
-            plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-            ### match factor labels for horizontal facet variable
-            df_plot_long$plot_facet_h <- factor(df_plot_long$plot_facet_h, levels = names(plot_level_facet), labels = paste(input$plot_facet,"=",plot_level_facet))
-            ### match factor labels for selected x-axis variables(s)
-            df_plot_long$ans <- factor(df_plot_long$ans , levels = names(plot_level), labels = unlist(plot_level))
-            ### match factor labels for vertical facet variable
-            df_plot_long$plot_facet_v <- df_plot_long$plot_facet_v %>% as.factor()
-            levels(df_plot_long$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot_long$plot_facet_v))
-
-            output$plot <- renderPlot(ggplot(df_plot_long,na.rm = FALSE)+
-              geom_bar(aes(x = survey_question,fill= ans),width=0.9)+
-              ggtitle("Comparison Plot")+
+            # horizontal & vertical collapsed facet plot
+          }else if(length(input$plot_var)>0 & input$plot_facet_v != "No" & input$collapse_or_not == "Yes"){
+            
+            # reactive expression: refilter data whenever the collapsed range changes
+            df_filter <- reactive({
+              df_plot2 <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
+              colnames(df_plot2)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
+              
+              df_plot_long2 <- gather(df_plot2,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
+              df_plot_long2$plot_facet_h <- df_plot_long2$plot_facet_h %>% as.character() %>% as.numeric()
+              df_plot3 <- df_plot_long2 %>%
+                filter(plot_facet_h >= input$collapse_range[1] & plot_facet_h <= input$collapse_range[2])
+              
+              df_plot3$plot_facet_v <- df_plot3$plot_facet_v %>% as.factor()
+              levels(df_plot3$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot3$plot_facet_v))
+              
+              df_plot3
+            })
+            
+            # print the factor labels for horizontal facet variable
+            output$legend_collapse <- renderText({
+              plot_level_facet <- all_level[[grep(sprintf("([^_]+|^)(%s)", input$plot_facet), unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
+              filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])   # df_filter(): refilter data whenever the collapsed range changes
+              paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
+            })
+            
+            ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
+              geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
+              ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
               labs(fill= "Answers") +
               theme(plot.title = element_text(hjust = 0.5),
                     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                     panel.background = element_blank(), axis.line = element_line(colour = "black"),
                     axis.text.x = element_text(angle = 30, hjust = 1))+
-              facet_grid(plot_facet_v ~ plot_facet_h)) # end of "output$plot"
-          
-          # if incomplete info provided, return nothing
-          }else{
-            # popup table: plot data
-            output$table_plot <- DT::renderDataTable({
-              return(NULL)
-            })
-            
-            # download plot data 
-            output$download_popup <- downloadHandler(
-              filename = paste("Seedling Plot Data.csv"),
-              content = function(file_out){
-                NULL
-              })
-            # facet plot
-            output$plot <- renderPlot(
-              return(NULL)
-            )
-          } 
-
-          ### collapsed plot
-          output$plot2 <- renderPlot(
-            
-            # horizontal collapsed facet plot
-            if (length(input$plot_var)>0 & input$plot_facet_v == "No" & input$collapse_or_not == "Yes"){
-              
-              # reactive expression: refilter data whenever the collapsed range changes
-              df_filter <- reactive({
-                df_plot2 <- df_all[c(input$plot_facet,input$plot_var)]
-                colnames(df_plot2)[1] <- "plot_facet"
-                df_plot_long2 <- gather(df_plot2,key = survey_question,value =  ans,- plot_facet)
-                df_plot_long2$plot_facet <- df_plot_long2$plot_facet %>% as.character() %>% as.numeric()
-                df_plot_long2 %>%
-                  filter(plot_facet >= input$collapse_range[1] & plot_facet <= input$collapse_range[2])
-              })
-              
-              # print the factor labels for horizontal facet variable
-              output$legend_collapse <- renderText({
-                plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1]) # df_filter(): refilter data whenever the collapsed range changes
-                paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
-              })
-              
-              ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
-                geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
-                ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
-                labs(fill= "Answers") +
-                theme(plot.title = element_text(hjust = 0.5),
-                      panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                      panel.background = element_blank(), axis.line = element_line(colour = "black"),
-                      axis.text.x = element_text(angle = 30, hjust = 1))
-            
-            # horizontal & vertical collapsed facet plot
-            }else if(length(input$plot_var)>0 & input$plot_facet_v != "No" & input$collapse_or_not == "Yes"){
-              
-              # reactive expression: refilter data whenever the collapsed range changes
-              df_filter <- reactive({
-                df_plot2 <- df_all[c(input$plot_facet,input$plot_facet_v, input$plot_var)]
-                colnames(df_plot2)[c(1,2)] <- c("plot_facet_h","plot_facet_v")
-                
-                df_plot_long2 <- gather(df_plot2,key = survey_question,value =  ans,-c(plot_facet_h,plot_facet_v))
-                df_plot_long2$plot_facet_h <- df_plot_long2$plot_facet_h %>% as.character() %>% as.numeric()
-                df_plot3 <- df_plot_long2 %>%
-                  filter(plot_facet_h >= input$collapse_range[1] & plot_facet_h <= input$collapse_range[2])
-              
-                df_plot3$plot_facet_v <- df_plot3$plot_facet_v %>% as.factor()
-                levels(df_plot3$plot_facet_v) <- paste(input$plot_facet_v,"=",levels(df_plot3$plot_facet_v))
-                
-                df_plot3
-              })
-              
-              # print the factor labels for horizontal facet variable
-              output$legend_collapse <- renderText({
-                plot_level_facet <- all_level[[grep(input$plot_facet, unlist(lapply(merge_choice, function(x) paste(unlist(x),collapse=" "))))]]
-                filter_ind <- which(names(plot_level_facet) %in% df_filter()[,1])   # df_filter(): refilter data whenever the collapsed range changes
-                paste(names(unlist(plot_level_facet[filter_ind])),"=",unlist(plot_level_facet[filter_ind]), "<br/>") 
-              })
-              
-              ggplot(df_filter(),na.rm = FALSE)+        # df_filter(): refilter data whenever the collapsed range changes
-                geom_bar(aes(x = survey_question,fill=factor(ans , levels = names(plot_level), labels = unlist(plot_level))),width=0.9)+
-                ggtitle(paste("Collapsed Plot for",input$plot_facet,">=",input$collapse_range[1],"&",input$plot_facet,"<=",input$collapse_range[2]))+
-                labs(fill= "Answers") +
-                theme(plot.title = element_text(hjust = 0.5),
-                      panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                      panel.background = element_blank(), axis.line = element_line(colour = "black"),
-                      axis.text.x = element_text(angle = 30, hjust = 1))+
-                facet_grid(plot_facet_v ~.)
-            }
-          ) # end of "output$plot2"
+              facet_grid(plot_facet_v ~.)
+          }
+        ) # end of "output$plot2"
       }) # end of observe4
     } # end of "d()==3" for plot
   }) # end of observe1: which dataset is chosen
